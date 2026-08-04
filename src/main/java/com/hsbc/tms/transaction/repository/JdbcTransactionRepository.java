@@ -27,6 +27,15 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
     private static final RowMapper<Transaction> TRANSACTION_ROW_MAPPER = new TransactionRowMapper();
 
+    private static final String SELECT_COLUMNS = """
+            id, account_id, payee_id, amount, currency, type, status,
+            transaction_time, description, created_at, updated_at,
+            reviewed_by, reviewed_at, review_note,
+            rollback_reason_code, rollback_reason_detail, rollback_requested_by, rollback_requested_at,
+            rollback_supporting_reference, rollback_reviewed_by, rollback_reviewed_at, rollback_review_note,
+            refunded_at, refund_transaction_id, refunded_for_transaction_id
+            """;
+
     private final JdbcClient jdbcClient;
 
     public JdbcTransactionRepository(JdbcClient jdbcClient) {
@@ -63,13 +72,60 @@ public class JdbcTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public Optional<Transaction> findById(UUID id) {
+    public Transaction update(Transaction transaction) {
         String sql = """
-                SELECT id, account_id, payee_id, amount, currency, type, status,
-                       transaction_time, description, created_at, updated_at
-                FROM transactions
+                UPDATE transactions SET
+                    account_id = :accountId, payee_id = :payeeId, amount = :amount, currency = :currency,
+                    type = :type, status = :status, transaction_time = :transactionTime,
+                    description = :description, updated_at = :updatedAt,
+                    reviewed_by = :reviewedBy, reviewed_at = :reviewedAt, review_note = :reviewNote,
+                    rollback_reason_code = :rollbackReasonCode, rollback_reason_detail = :rollbackReasonDetail,
+                    rollback_requested_by = :rollbackRequestedBy, rollback_requested_at = :rollbackRequestedAt,
+                    rollback_supporting_reference = :rollbackSupportingReference,
+                    rollback_reviewed_by = :rollbackReviewedBy, rollback_reviewed_at = :rollbackReviewedAt,
+                    rollback_review_note = :rollbackReviewNote,
+                    refunded_at = :refundedAt, refund_transaction_id = :refundTransactionId,
+                    refunded_for_transaction_id = :refundedForTransactionId
                 WHERE id = :id
                 """;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("id", transaction.getId().toString());
+        params.put("accountId", transaction.getAccountId());
+        params.put("payeeId", transaction.getPayeeId());
+        params.put("amount", transaction.getAmount());
+        params.put("currency", transaction.getCurrency());
+        params.put("type", transaction.getType().name());
+        params.put("status", transaction.getStatus().name());
+        params.put("transactionTime", Timestamp.from(transaction.getTransactionTime()));
+        params.put("description", transaction.getDescription());
+        params.put("updatedAt", Timestamp.from(transaction.getUpdatedAt()));
+        params.put("reviewedBy", transaction.getReviewedBy());
+        params.put("reviewedAt", toTimestamp(transaction.getReviewedAt()));
+        params.put("reviewNote", transaction.getReviewNote());
+        params.put("rollbackReasonCode", transaction.getRollbackReasonCode());
+        params.put("rollbackReasonDetail", transaction.getRollbackReasonDetail());
+        params.put("rollbackRequestedBy", transaction.getRollbackRequestedBy());
+        params.put("rollbackRequestedAt", toTimestamp(transaction.getRollbackRequestedAt()));
+        params.put("rollbackSupportingReference", transaction.getRollbackSupportingReference());
+        params.put("rollbackReviewedBy", transaction.getRollbackReviewedBy());
+        params.put("rollbackReviewedAt", toTimestamp(transaction.getRollbackReviewedAt()));
+        params.put("rollbackReviewNote", transaction.getRollbackReviewNote());
+        params.put("refundedAt", toTimestamp(transaction.getRefundedAt()));
+        params.put("refundTransactionId", transaction.getRefundTransactionId() == null ? null : transaction.getRefundTransactionId().toString());
+        params.put("refundedForTransactionId", transaction.getRefundedForTransactionId() == null ? null : transaction.getRefundedForTransactionId().toString());
+
+        jdbcClient.sql(sql).params(params).update();
+        return transaction;
+    }
+
+    @Override
+    public Optional<Transaction> findById(UUID id) {
+        String sql = """
+                SELECT %s
+                FROM transactions
+                WHERE id = :id
+                """.formatted(SELECT_COLUMNS);
 
         try {
             Transaction transaction = jdbcClient.sql(sql)
@@ -123,11 +179,8 @@ public class JdbcTransactionRepository implements TransactionRepository {
         String countSql = "SELECT COUNT(*) FROM transactions" + whereClause;
         Long total = jdbcClient.sql(countSql).params(params).query(Long.class).single();
 
-        String dataSql = """
-                SELECT id, account_id, payee_id, amount, currency, type, status,
-                       transaction_time, description, created_at, updated_at
-                FROM transactions
-                """ + whereClause + " ORDER BY " + buildOrderBy(pageable.getSort()) + " LIMIT :limit OFFSET :offset";
+        String dataSql = "SELECT " + SELECT_COLUMNS + " FROM transactions"
+                + whereClause + " ORDER BY " + buildOrderBy(pageable.getSort()) + " LIMIT :limit OFFSET :offset";
 
         params.put("limit", pageable.getPageSize());
         params.put("offset", pageable.getOffset());
@@ -138,6 +191,10 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private Timestamp toTimestamp(Instant instant) {
+        return instant == null ? null : Timestamp.from(instant);
     }
 
     private String buildOrderBy(Sort sort) {
@@ -175,12 +232,31 @@ public class JdbcTransactionRepository implements TransactionRepository {
             transaction.setDescription(rs.getString("description"));
             transaction.setCreatedAt(getInstant(rs, "created_at"));
             transaction.setUpdatedAt(getInstant(rs, "updated_at"));
+            transaction.setReviewedBy(rs.getString("reviewed_by"));
+            transaction.setReviewedAt(getInstant(rs, "reviewed_at"));
+            transaction.setReviewNote(rs.getString("review_note"));
+            transaction.setRollbackReasonCode(rs.getString("rollback_reason_code"));
+            transaction.setRollbackReasonDetail(rs.getString("rollback_reason_detail"));
+            transaction.setRollbackRequestedBy(rs.getString("rollback_requested_by"));
+            transaction.setRollbackRequestedAt(getInstant(rs, "rollback_requested_at"));
+            transaction.setRollbackSupportingReference(rs.getString("rollback_supporting_reference"));
+            transaction.setRollbackReviewedBy(rs.getString("rollback_reviewed_by"));
+            transaction.setRollbackReviewedAt(getInstant(rs, "rollback_reviewed_at"));
+            transaction.setRollbackReviewNote(rs.getString("rollback_review_note"));
+            transaction.setRefundedAt(getInstant(rs, "refunded_at"));
+            transaction.setRefundTransactionId(getUuid(rs, "refund_transaction_id"));
+            transaction.setRefundedForTransactionId(getUuid(rs, "refunded_for_transaction_id"));
             return transaction;
         }
 
         private Instant getInstant(ResultSet rs, String column) throws SQLException {
             Timestamp timestamp = rs.getTimestamp(column);
             return timestamp == null ? null : timestamp.toInstant();
+        }
+
+        private UUID getUuid(ResultSet rs, String column) throws SQLException {
+            String value = rs.getString(column);
+            return value == null ? null : UUID.fromString(value);
         }
     }
 }
