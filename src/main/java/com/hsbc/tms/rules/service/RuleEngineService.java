@@ -1,5 +1,6 @@
 package com.hsbc.tms.rules.service;
 
+import com.hsbc.tms.alerts.service.AlertService;
 import com.hsbc.tms.rules.entity.MonitoringRule;
 import com.hsbc.tms.rules.entity.RuleExecutionHistory;
 import com.hsbc.tms.rules.model.RuleExecutionOutcome;
@@ -20,14 +21,17 @@ public class RuleEngineService {
 
     private final MonitoringRuleRepository ruleRepository;
     private final RuleExecutionHistoryRepository ruleExecutionHistoryRepository;
+    private final AlertService alertService;
     private final Map<RuleType, RuleEvaluator> evaluatorsByType;
 
     public RuleEngineService(
             MonitoringRuleRepository ruleRepository,
             RuleExecutionHistoryRepository ruleExecutionHistoryRepository,
+            AlertService alertService,
             List<RuleEvaluator> evaluators) {
         this.ruleRepository = ruleRepository;
         this.ruleExecutionHistoryRepository = ruleExecutionHistoryRepository;
+        this.alertService = alertService;
         this.evaluatorsByType = buildEvaluatorMap(evaluators);
     }
 
@@ -56,6 +60,7 @@ public class RuleEngineService {
                         transaction,
                         RuleExecutionOutcome.TRIGGERED,
                         result.reason());
+                alertService.createAlertForRuleTrigger(rule, transaction, result.reason(), result.triggeringTransactions());
                 violated = true;
             } else {
                 saveExecutionHistory(

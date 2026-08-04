@@ -55,3 +55,37 @@ CREATE TABLE IF NOT EXISTS rule_execution_history (
     INDEX idx_rule_execution_history_transaction_id (transaction_id),
     INDEX idx_rule_execution_history_created_at (created_at)
 );
+
+CREATE TABLE IF NOT EXISTS alerts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    rule_name VARCHAR(150) NOT NULL,
+    rule_type VARCHAR(40) NOT NULL,
+    severity VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    message VARCHAR(1000) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
+    INDEX idx_alerts_status (status),
+    INDEX idx_alerts_severity (severity),
+    INDEX idx_alerts_created_at (created_at)
+);
+
+CREATE TABLE IF NOT EXISTS alert_transactions (
+    alert_id BIGINT NOT NULL,
+    transaction_id CHAR(36) NOT NULL,
+    PRIMARY KEY (alert_id, transaction_id),
+    INDEX idx_alert_transactions_transaction_id (transaction_id)
+);
+
+CREATE TABLE IF NOT EXISTS alert_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    alert_id BIGINT NOT NULL,
+    from_status VARCHAR(20),
+    to_status VARCHAR(20) NOT NULL,
+    note VARCHAR(1000) NOT NULL,
+    changed_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    INDEX idx_alert_history_alert_id (alert_id),
+    INDEX idx_alert_history_created_at (created_at)
+);
+
