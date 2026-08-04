@@ -23,6 +23,11 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), List.of());
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleConflict(ConflictException ex) {
+        return buildError(HttpStatus.CONFLICT, ex.getMessage(), List.of());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         List<String> details = ex.getBindingResult()
@@ -59,4 +64,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(response);
     }
 }
-

@@ -16,3 +16,42 @@ CREATE TABLE IF NOT EXISTS transactions (
     INDEX idx_transactions_transaction_time (transaction_time)
 );
 
+CREATE TABLE IF NOT EXISTS monitoring_rules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    type VARCHAR(40) NOT NULL,
+    severity VARCHAR(20) NOT NULL,
+    active BOOLEAN NOT NULL,
+    amount_threshold DECIMAL(19, 2),
+    transaction_count_threshold INT,
+    time_window_minutes INT,
+    created_at TIMESTAMP(6) NOT NULL,
+    INDEX idx_monitoring_rules_active (active),
+    INDEX idx_monitoring_rules_type (type),
+    INDEX idx_monitoring_rules_severity (severity)
+);
+
+CREATE TABLE IF NOT EXISTS rule_audit_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    rule_id BIGINT NOT NULL,
+    action VARCHAR(20) NOT NULL,
+    previous_values VARCHAR(4000),
+    new_values VARCHAR(4000),
+    changed_at TIMESTAMP(6) NOT NULL,
+    changed_by VARCHAR(100) NOT NULL,
+    INDEX idx_rule_audit_history_rule_id (rule_id),
+    INDEX idx_rule_audit_history_changed_at (changed_at)
+);
+
+CREATE TABLE IF NOT EXISTS rule_execution_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    execution_id CHAR(36) NOT NULL,
+    rule_id BIGINT NOT NULL,
+    transaction_id CHAR(36) NOT NULL,
+    outcome VARCHAR(20) NOT NULL,
+    message VARCHAR(1000) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    INDEX idx_rule_execution_history_rule_id (rule_id),
+    INDEX idx_rule_execution_history_transaction_id (transaction_id),
+    INDEX idx_rule_execution_history_created_at (created_at)
+);
