@@ -19,6 +19,8 @@ import java.util.UUID;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -93,24 +95,9 @@ public class JdbcAlertRepository implements AlertRepository {
                         :ruleName, :ruleType, :severity, :status, :message, :createdAt, :updatedAt
                     )
                     """;
-            jdbcClient.sql(insertSql).params(toParams(alert)).update();
-
-            String findSql = """
-                    SELECT id
-                    FROM alerts
-                    WHERE rule_name = :ruleName
-                      AND status = :status
-                      AND created_at = :createdAt
-                    ORDER BY id DESC
-                    LIMIT 1
-                    """;
-            Long id = jdbcClient.sql(findSql)
-                    .param("ruleName", alert.getRuleName())
-                    .param("status", alert.getStatus().name())
-                    .param("createdAt", Timestamp.from(alert.getCreatedAt()))
-                    .query(Long.class)
-                    .single();
-            alert.setId(id);
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            jdbcClient.sql(insertSql).params(toParams(alert)).update(keyHolder);
+            alert.setId(keyHolder.getKey().longValue());
             return alert;
         }
 
