@@ -2,8 +2,11 @@ package com.hsbc.tms.transaction.controller;
 
 import com.hsbc.tms.common.dto.PagedResponse;
 import com.hsbc.tms.transaction.dto.CreateTransactionRequest;
+import com.hsbc.tms.transaction.dto.TransactionDecisionRequest;
 import com.hsbc.tms.transaction.dto.TransactionFilterRequest;
 import com.hsbc.tms.transaction.dto.TransactionResponse;
+import com.hsbc.tms.transaction.dto.TransactionRollbackDecisionRequest;
+import com.hsbc.tms.transaction.dto.TransactionRollbackRequest;
 import com.hsbc.tms.transaction.model.TransactionStatus;
 import com.hsbc.tms.transaction.model.TransactionType;
 import com.hsbc.tms.transaction.service.TransactionService;
@@ -19,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -78,6 +82,36 @@ public class TransactionController {
         filter.setToTime(toTime);
 
         return ResponseEntity.ok(transactionService.findTransactions(filter, page, size, sortBy, sortDir));
+    }
+
+    @PatchMapping("/{id}/approve")
+    @Operation(summary = "Approve a pending transaction")
+    public ResponseEntity<TransactionResponse> approve(@PathVariable UUID id, @Valid @RequestBody TransactionDecisionRequest request) {
+        return ResponseEntity.ok(transactionService.approve(id, request));
+    }
+
+    @PatchMapping("/{id}/reject")
+    @Operation(summary = "Reject a pending transaction")
+    public ResponseEntity<TransactionResponse> reject(@PathVariable UUID id, @Valid @RequestBody TransactionDecisionRequest request) {
+        return ResponseEntity.ok(transactionService.reject(id, request));
+    }
+
+    @PatchMapping("/{id}/rollback/request")
+    @Operation(summary = "Request a rollback for a completed transaction")
+    public ResponseEntity<TransactionResponse> requestRollback(@PathVariable UUID id, @Valid @RequestBody TransactionRollbackRequest request) {
+        return ResponseEntity.ok(transactionService.requestRollback(id, request));
+    }
+
+    @PatchMapping("/{id}/rollback/approve")
+    @Operation(summary = "Approve a rollback request and issue a refund")
+    public ResponseEntity<TransactionResponse> approveRollback(@PathVariable UUID id, @Valid @RequestBody TransactionRollbackDecisionRequest request) {
+        return ResponseEntity.ok(transactionService.approveRollback(id, request));
+    }
+
+    @PatchMapping("/{id}/rollback/reject")
+    @Operation(summary = "Reject a rollback request")
+    public ResponseEntity<TransactionResponse> rejectRollback(@PathVariable UUID id, @Valid @RequestBody TransactionRollbackDecisionRequest request) {
+        return ResponseEntity.ok(transactionService.rejectRollback(id, request));
     }
 }
 

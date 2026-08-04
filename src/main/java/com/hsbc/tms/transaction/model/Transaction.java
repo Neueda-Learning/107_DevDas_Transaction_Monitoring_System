@@ -18,6 +18,23 @@ public class Transaction {
     private Instant createdAt;
     private Instant updatedAt;
 
+    private String reviewedBy;
+    private Instant reviewedAt;
+    private String reviewNote;
+
+    private String rollbackReasonCode;
+    private String rollbackReasonDetail;
+    private String rollbackRequestedBy;
+    private Instant rollbackRequestedAt;
+    private String rollbackSupportingReference;
+    private String rollbackReviewedBy;
+    private Instant rollbackReviewedAt;
+    private String rollbackReviewNote;
+
+    private Instant refundedAt;
+    private UUID refundTransactionId;
+    private UUID refundedForTransactionId;
+
     public UUID getId() {
         return id;
     }
@@ -104,6 +121,118 @@ public class Transaction {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getReviewedBy() {
+        return reviewedBy;
+    }
+
+    public void setReviewedBy(String reviewedBy) {
+        this.reviewedBy = reviewedBy;
+    }
+
+    public Instant getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(Instant reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public String getReviewNote() {
+        return reviewNote;
+    }
+
+    public void setReviewNote(String reviewNote) {
+        this.reviewNote = reviewNote;
+    }
+
+    public String getRollbackReasonCode() {
+        return rollbackReasonCode;
+    }
+
+    public void setRollbackReasonCode(String rollbackReasonCode) {
+        this.rollbackReasonCode = rollbackReasonCode;
+    }
+
+    public String getRollbackReasonDetail() {
+        return rollbackReasonDetail;
+    }
+
+    public void setRollbackReasonDetail(String rollbackReasonDetail) {
+        this.rollbackReasonDetail = rollbackReasonDetail;
+    }
+
+    public String getRollbackRequestedBy() {
+        return rollbackRequestedBy;
+    }
+
+    public void setRollbackRequestedBy(String rollbackRequestedBy) {
+        this.rollbackRequestedBy = rollbackRequestedBy;
+    }
+
+    public Instant getRollbackRequestedAt() {
+        return rollbackRequestedAt;
+    }
+
+    public void setRollbackRequestedAt(Instant rollbackRequestedAt) {
+        this.rollbackRequestedAt = rollbackRequestedAt;
+    }
+
+    public String getRollbackSupportingReference() {
+        return rollbackSupportingReference;
+    }
+
+    public void setRollbackSupportingReference(String rollbackSupportingReference) {
+        this.rollbackSupportingReference = rollbackSupportingReference;
+    }
+
+    public String getRollbackReviewedBy() {
+        return rollbackReviewedBy;
+    }
+
+    public void setRollbackReviewedBy(String rollbackReviewedBy) {
+        this.rollbackReviewedBy = rollbackReviewedBy;
+    }
+
+    public Instant getRollbackReviewedAt() {
+        return rollbackReviewedAt;
+    }
+
+    public void setRollbackReviewedAt(Instant rollbackReviewedAt) {
+        this.rollbackReviewedAt = rollbackReviewedAt;
+    }
+
+    public String getRollbackReviewNote() {
+        return rollbackReviewNote;
+    }
+
+    public void setRollbackReviewNote(String rollbackReviewNote) {
+        this.rollbackReviewNote = rollbackReviewNote;
+    }
+
+    public Instant getRefundedAt() {
+        return refundedAt;
+    }
+
+    public void setRefundedAt(Instant refundedAt) {
+        this.refundedAt = refundedAt;
+    }
+
+    public UUID getRefundTransactionId() {
+        return refundTransactionId;
+    }
+
+    public void setRefundTransactionId(UUID refundTransactionId) {
+        this.refundTransactionId = refundTransactionId;
+    }
+
+    public UUID getRefundedForTransactionId() {
+        return refundedForTransactionId;
+    }
+
+    public void setRefundedForTransactionId(UUID refundedForTransactionId) {
+        this.refundedForTransactionId = refundedForTransactionId;
     }
 }
 

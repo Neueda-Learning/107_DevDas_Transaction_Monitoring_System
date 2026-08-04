@@ -11,6 +11,8 @@ public interface TransactionRepository {
 
 	Transaction save(Transaction transaction);
 
+	Transaction update(Transaction transaction);
+
 	Optional<Transaction> findById(UUID id);
 
 	Page<Transaction> findByFilter(TransactionFilterRequest filter, Pageable pageable);
