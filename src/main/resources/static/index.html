@@ -566,7 +566,7 @@
 
     // Enum → badge tone
     const SEVERITY_TONE = { HIGH: 'red', MEDIUM: 'amber', LOW: 'blue' };
-    const TXN_STATUS_TONE = { COMPLETED: 'green', PENDING: 'amber', FAILED: 'red' };
+    const TXN_STATUS_TONE = { COMPLETED: 'green', PENDING: 'amber', FAILED: 'red', PENDING_APPROVAL: 'amber', REJECTED: 'red', ROLLBACK_REQUESTED: 'purple', ROLLBACK_REJECTED: 'red', REFUNDED: 'blue' };
     const ALERT_STATUS_TONE = { OPEN: 'red', ACKNOWLEDGED: 'blue', INVESTIGATING: 'purple', CLOSED: 'green', DISMISSED: 'gray' };
     const TXN_TYPE_TONE = { DEBIT: 'amber', CREDIT: 'green' };
     const RULE_TYPE_LABEL = { AMOUNT_THRESHOLD: 'Amount threshold', VELOCITY: 'Velocity', NEW_PAYEE: 'New payee', DAILY_LIMIT: 'Daily limit' };
@@ -880,7 +880,7 @@
             <div class="filters">
               <div class="fg"><span class="lbl">Account ID</span><input class="input" id="fAccount" placeholder="e.g. ACC-1001" value="${esc(txnState.filters.accountId || '')}"></div>
               <div class="fg"><span class="lbl">Payee ID</span><input class="input" id="fPayee" placeholder="e.g. PAY-22" value="${esc(txnState.filters.payeeId || '')}"></div>
-              <div class="fg"><span class="lbl">Status</span><select class="select" id="fStatus"><option value="">Any</option>${optionList(['COMPLETED','PENDING','FAILED'], txnState.filters.status)}</select></div>
+              <div class="fg"><span class="lbl">Status</span><select class="select" id="fStatus"><option value="">Any</option>${optionList(['COMPLETED','PENDING','FAILED','PENDING_APPROVAL','REJECTED','ROLLBACK_REQUESTED','ROLLBACK_REJECTED','REFUNDED'], txnState.filters.status)}</select></div>
               <div class="fg"><span class="lbl">Type</span><select class="select" id="fType"><option value="">Any</option>${optionList(['DEBIT','CREDIT'], txnState.filters.type)}</select></div>
               <div class="fg"><span class="lbl">Min amount</span><input class="input num" id="fMin" type="number" step="0.01" min="0" placeholder="0.00" value="${esc(txnState.filters.minAmount || '')}" style="width:120px"></div>
               <div class="fg"><span class="lbl">Max amount</span><input class="input num" id="fMax" type="number" step="0.01" min="0" placeholder="Any" value="${esc(txnState.filters.maxAmount || '')}" style="width:120px"></div>
@@ -1000,9 +1000,19 @@
     }
     async function openTxnDetail(id) {
       const body = el('<div><div class="table-wrap"><table><tbody>' + skeletonRows(2, 5) + '</tbody></table></div></div>');
-      openModal({ title: 'Transaction', sub: 'Reference ' + shortId(id), body, wide: false });
+      const overlay = openModal({ title: 'Transaction', sub: 'Reference ' + shortId(id), body, wide: false, footer: document.createDocumentFragment() });
       try {
         const t = await api('/transactions/' + id);
+        const extra = [];
+        if (t.reviewedBy) extra.push(`<dt>Reviewed by</dt><dd>${esc(t.reviewedBy)} <span class="t-muted">· ${fmtDate(t.reviewedAt)}</span></dd>`);
+        if (t.reviewNote) extra.push(`<dt>Review note</dt><dd>${esc(t.reviewNote)}</dd>`);
+        if (t.rollbackReasonCode) extra.push(`<dt>Rollback reason</dt><dd>${esc(t.rollbackReasonCode)} — ${esc(t.rollbackReasonDetail || '')}</dd>`);
+        if (t.rollbackRequestedBy) extra.push(`<dt>Rollback requested by</dt><dd>${esc(t.rollbackRequestedBy)} <span class="t-muted">· ${fmtDate(t.rollbackRequestedAt)}</span></dd>`);
+        if (t.rollbackReviewedBy) extra.push(`<dt>Rollback reviewed by</dt><dd>${esc(t.rollbackReviewedBy)} <span class="t-muted">· ${fmtDate(t.rollbackReviewedAt)}</span></dd>`);
+        if (t.rollbackReviewNote) extra.push(`<dt>Rollback review note</dt><dd>${esc(t.rollbackReviewNote)}</dd>`);
+        if (t.refundTransactionId) extra.push(`<dt>Refund transaction</dt><dd class="mono clickable" data-txn="${t.refundTransactionId}">${shortId(t.refundTransactionId)}</dd>`);
+        if (t.refundedForTransactionId) extra.push(`<dt>Refund for</dt><dd class="mono clickable" data-txn="${t.refundedForTransactionId}">${shortId(t.refundedForTransactionId)}</dd>`);
+
         body.innerHTML = `
           <dl class="detail-list">
             <dt>Transaction ID</dt><dd class="mono">${esc(t.id)}</dd>
@@ -1015,9 +1025,112 @@
             <dt>Description</dt><dd>${t.description ? esc(t.description) : '<span class="t-soft">—</span>'}</dd>
             <dt>Created</dt><dd class="t-muted">${fmtDate(t.createdAt)}</dd>
             <dt>Updated</dt><dd class="t-muted">${fmtDate(t.updatedAt)}</dd>
+            ${extra.join('')}
           </dl>`;
+        body.querySelectorAll('[data-txn]').forEach(dd => dd.onclick = () => openTxnDetail(dd.dataset.txn));
+
+        const foot = overlay.querySelector('.modal-foot');
+        foot.innerHTML = '';
+        const cancel = el('<button class="btn btn-ghost">Close</button>'); cancel.onclick = closeModal; foot.append(cancel);
+        const onDone = () => { closeModal(); if (currentRoute === 'transactions') loadTxns($('#view')); else if (currentRoute === 'dashboard') viewDashboard($('#view')); };
+        if (t.status === 'PENDING_APPROVAL') {
+          const rej = el('<button class="btn btn-danger btn-sm">Reject</button>');
+          rej.onclick = () => promptTxnDecision(t, 'reject', onDone);
+          foot.append(rej);
+          const app = el('<button class="btn btn-primary btn-sm">Approve</button>');
+          app.onclick = () => promptTxnDecision(t, 'approve', onDone);
+          foot.append(app);
+        } else if (t.status === 'COMPLETED') {
+          const rb = el('<button class="btn btn-primary btn-sm">Request rollback</button>');
+          rb.onclick = () => promptTxnRollbackRequest(t, onDone);
+          foot.append(rb);
+        } else if (t.status === 'ROLLBACK_REQUESTED') {
+          const rej = el('<button class="btn btn-danger btn-sm">Reject rollback</button>');
+          rej.onclick = () => promptTxnRollbackDecision(t, 'reject', onDone);
+          foot.append(rej);
+          const app = el('<button class="btn btn-primary btn-sm">Approve rollback</button>');
+          app.onclick = () => promptTxnRollbackDecision(t, 'approve', onDone);
+          foot.append(app);
+        }
       } catch (e) {
         body.innerHTML = emptyState('Could not load transaction', e.message);
+      }
+    }
+    function promptTxnDecision(t, action, onDone) {
+      const approve = action === 'approve';
+      const form = el(`<form id="txnDecisionForm">
+        <p style="margin:0 0 16px;font-size:13.5px;color:var(--text-muted)">${approve ? 'Approve' : 'Reject'} transaction <span class="mono">${esc(shortId(t.id))}</span> for ${fmtMoney(t.amount, t.currency)}.</p>
+        <label class="field"><span class="lbl">Note <span class="t-soft">(optional)</span></span>
+          <textarea class="input" name="note" placeholder="Add context for the audit trail"></textarea></label>
+      </form>`);
+      let submitBtn;
+      const footer = footerButtons([
+        { label: 'Back', class: 'btn-ghost', onClick: () => openTxnDetail(t.id) },
+        { label: approve ? 'Approve' : 'Reject', class: approve ? 'btn-primary' : 'btn-danger', ref: b => submitBtn = b, onClick: submit },
+      ]);
+      openModal({ title: (approve ? 'Approve' : 'Reject') + ' transaction', sub: 'Recorded as ' + CFG.operator, body: form, footer });
+      form.addEventListener('submit', e => { e.preventDefault(); submit(); });
+      async function submit() {
+        const note = new FormData(form).get('note').trim();
+        busy(submitBtn, true, 'Saving…');
+        try {
+          await api('/transactions/' + t.id + '/' + (approve ? 'approve' : 'reject'), { method: 'PATCH', body: JSON.stringify({ operatorId: CFG.operator, note: note || null }) });
+          toast('ok', 'Transaction updated', approve ? 'Transaction approved' : 'Transaction rejected');
+          onDone();
+        } catch (e) { toastError(e); busy(submitBtn, false); }
+      }
+    }
+    function promptTxnRollbackRequest(t, onDone) {
+      const form = el(`<form id="txnRollbackReqForm" class="form-grid">
+        <p class="full" style="margin:0 0 4px;font-size:13.5px;color:var(--text-muted)">Request a rollback for <span class="mono">${esc(shortId(t.id))}</span> (${fmtMoney(t.amount, t.currency)}).</p>
+        <label class="field full"><span class="lbl">Reason code <span class="req">*</span></span><input class="input" name="reasonCode" required placeholder="CUSTOMER_REQUEST"></label>
+        <label class="field full"><span class="lbl">Reason detail <span class="req">*</span></span><textarea class="input" name="reasonDetail" required placeholder="Explain why this transaction should be rolled back"></textarea></label>
+        <label class="field"><span class="lbl">Requested by <span class="req">*</span></span><input class="input" name="requestedBy" required value="${esc(CFG.operator)}"></label>
+        <label class="field"><span class="lbl">Supporting reference</span><input class="input" name="supportingReference" placeholder="Optional case/ticket ref"></label>
+      </form>`);
+      let submitBtn;
+      const footer = footerButtons([
+        { label: 'Back', class: 'btn-ghost', onClick: () => openTxnDetail(t.id) },
+        { label: 'Request rollback', class: 'btn-primary', ref: b => submitBtn = b, onClick: submit },
+      ]);
+      openModal({ title: 'Request rollback', sub: 'Recorded as ' + CFG.operator, body: form, footer });
+      form.addEventListener('submit', e => { e.preventDefault(); submit(); });
+      async function submit() {
+        if (!form.reportValidity()) return;
+        const data = Object.fromEntries(new FormData(form).entries());
+        busy(submitBtn, true, 'Saving…');
+        try {
+          await api('/transactions/' + t.id + '/rollback/request', { method: 'PATCH', body: JSON.stringify({
+            reasonCode: data.reasonCode.trim(), reasonDetail: data.reasonDetail.trim(),
+            requestedBy: data.requestedBy.trim(), supportingReference: data.supportingReference.trim() || null,
+          }) });
+          toast('ok', 'Rollback requested', 'Transaction moved to rollback review');
+          onDone();
+        } catch (e) { toastError(e); busy(submitBtn, false); }
+      }
+    }
+    function promptTxnRollbackDecision(t, action, onDone) {
+      const approve = action === 'approve';
+      const form = el(`<form id="txnRollbackDecisionForm">
+        <p style="margin:0 0 16px;font-size:13.5px;color:var(--text-muted)">${approve ? 'Approve rollback and issue a refund for' : 'Reject the rollback request for'} <span class="mono">${esc(shortId(t.id))}</span>.</p>
+        <label class="field"><span class="lbl">Note <span class="t-soft">(optional)</span></span>
+          <textarea class="input" name="note" placeholder="Add context for the audit trail"></textarea></label>
+      </form>`);
+      let submitBtn;
+      const footer = footerButtons([
+        { label: 'Back', class: 'btn-ghost', onClick: () => openTxnDetail(t.id) },
+        { label: approve ? 'Approve rollback' : 'Reject rollback', class: approve ? 'btn-primary' : 'btn-danger', ref: b => submitBtn = b, onClick: submit },
+      ]);
+      openModal({ title: (approve ? 'Approve' : 'Reject') + ' rollback', sub: 'Recorded as ' + CFG.operator, body: form, footer });
+      form.addEventListener('submit', e => { e.preventDefault(); submit(); });
+      async function submit() {
+        const note = new FormData(form).get('note').trim();
+        busy(submitBtn, true, 'Saving…');
+        try {
+          await api('/transactions/' + t.id + '/rollback/' + (approve ? 'approve' : 'reject'), { method: 'PATCH', body: JSON.stringify({ operatorId: CFG.operator, note: note || null }) });
+          toast('ok', 'Rollback updated', approve ? 'Rollback approved and refunded' : 'Rollback rejected');
+          onDone();
+        } catch (e) { toastError(e); busy(submitBtn, false); }
       }
     }
 
