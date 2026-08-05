@@ -25,7 +25,6 @@ public class SimulationService {
             TransactionStatus.COMPLETED,
             TransactionStatus.COMPLETED,
             TransactionStatus.COMPLETED,
-            TransactionStatus.PENDING,
             TransactionStatus.FAILED);
 
     private final TransactionService transactionService;
