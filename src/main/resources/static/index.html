@@ -1221,6 +1221,9 @@
             <button class="btn btn-sm btn-ghost" id="alertRefresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh</button>
           </div>
         </div></div>
+        <div class="mb-16" style="display:flex;justify-content:flex-start">
+          <button class="btn btn-sm btn-primary" id="alertOpenOnly">Open</button>
+        </div>
         <div class="card">
           <div class="table-wrap"><table>
             <thead><tr><th>Severity</th><th>Rule</th><th>Message</th><th>Status</th><th>Raised</th><th></th></tr></thead>
@@ -1236,6 +1239,10 @@
       $('#aStatus', view).onchange = reload;
       $('#aSeverity', view).onchange = reload;
       $('#aActive', view).onchange = reload;
+      $('#alertOpenOnly', view).onclick = () => {
+        $('#aStatus', view).value = 'OPEN';
+        reload();
+      };
       $('#alertRefresh', view).onclick = () => loadAlerts(view);
       $('#aSearch', view).addEventListener('input', debounce(() => { alertState.q = $('#aSearch', view).value.trim().toLowerCase(); loadAlerts(view); }, 250));
       loadAlerts(view);
