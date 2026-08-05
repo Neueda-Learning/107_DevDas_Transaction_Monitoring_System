@@ -801,7 +801,7 @@
         api('/rules/stats'),
         api('/transactions' + qs({ page: 0, size: 6, sortBy: 'transactionTime', sortDir: 'desc' })),
         api('/transactions' + qs({ status: 'COMPLETED', size: 1 })),
-        api('/transactions' + qs({ status: 'PENDING', size: 1 })),
+        api('/transactions' + qs({ status: 'PENDING_APPROVAL', size: 1 })),
         api('/transactions' + qs({ status: 'FAILED', size: 1 })),
         api('/dashboard/summary'),
       ]);
@@ -835,7 +835,7 @@
       const txnOk = txnComp.status === 'fulfilled' && txnPend.status === 'fulfilled' && txnFail.status === 'fulfilled';
       const txnSegs = [
         { label: 'Completed', value: cnt(txnComp), color: 'var(--green)' },
-        { label: 'Pending', value: cnt(txnPend), color: 'var(--amber)' },
+        { label: 'Pending For Approval', value: cnt(txnPend), color: 'var(--amber)' },
         { label: 'Failed', value: cnt(txnFail), color: 'var(--red)' },
       ];
       const txnTotal = txnSegs.reduce((s, x) => s + x.value, 0);
