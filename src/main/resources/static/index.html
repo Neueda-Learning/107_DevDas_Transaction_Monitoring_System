@@ -756,19 +756,6 @@
           </div>
         </div>
 
-        <div class="stat-grid" id="dashSummary">
-          ${['blue','purple','amber','red'].map(t => `<div class="stat tone-${t}"><div class="stat-top"><div class="ico"></div><div class="stat-label"><div class="skeleton" style="width:80px;height:11px"></div></div></div><div class="skeleton" style="width:50px;height:24px"></div></div>`).join('')}
-        </div>
-
-        <div class="card mb-16"><div class="card-body">
-          <div class="flex items-center gap-8" style="flex-wrap:wrap">
-            <span class="lbl" style="margin:0">Generate sample transactions</span>
-            <input class="input num" id="simCount" type="number" min="1" max="200" value="10" style="width:100px">
-            <button class="btn btn-primary btn-sm" id="simGenerate">Generate</button>
-            <span class="t-soft" style="font-size:12.5px">Creates random transactions to populate data and trigger alert rules.</span>
-          </div>
-        </div></div>
-
         <div class="analytics">
           <div class="card chart-card"><div class="card-head"><h3>Transactions by status</h3></div><div class="card-body" id="chartTxn"><div class="chart-empty">Loading…</div></div></div>
           <div class="card chart-card"><div class="card-head"><h3>Alerts by severity</h3></div><div class="card-body" id="chartSev"><div class="chart-empty">Loading…</div></div></div>
@@ -784,40 +771,13 @@
       const applyResponsive = () => { cols.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '1.35fr 1fr'; };
       applyResponsive(); window.addEventListener('resize', applyResponsive);
 
-      const genBtn = $('#simGenerate', view);
-      genBtn.onclick = async () => {
-        const count = Math.max(1, Math.min(200, Number($('#simCount', view).value) || 10));
-        busy(genBtn, true, 'Generating…');
-        try {
-          await api('/simulator/generate', { method: 'POST', body: JSON.stringify({ count }) });
-          toast('ok', 'Sample data generated', `Created ${count} transactions`);
-          viewDashboard(view);
-        } catch (e) { toastError(e); busy(genBtn, false); }
-      };
-
-      const [alerts, stats, txnPage, txnComp, txnPend, txnFail, summary] = await Promise.allSettled([
         api('/alerts'),
         api('/rules/stats'),
         api('/transactions' + qs({ page: 0, size: 6, sortBy: 'transactionTime', sortDir: 'desc' })),
         api('/transactions' + qs({ status: 'COMPLETED', size: 1 })),
         api('/transactions' + qs({ status: 'PENDING', size: 1 })),
         api('/transactions' + qs({ status: 'FAILED', size: 1 })),
-        api('/dashboard/summary'),
       ]);
-
-      if (summary.status === 'fulfilled') {
-        const s = summary.value;
-        const cards = [
-          { tone: 'blue', label: 'Total transactions', value: s.totalTransactions, icon: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>' },
-          { tone: 'purple', label: 'Total alerts', value: s.totalAlerts, icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>' },
-          { tone: 'amber', label: 'Active alerts', value: s.activeAlerts, icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
-          { tone: 'red', label: 'Open alerts', value: s.openAlerts, icon: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
-        ];
-        $('#dashSummary', view).innerHTML = cards.map(c => `
-          <div class="stat tone-${c.tone}"><div class="stat-top"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${c.icon}</svg></div><div class="stat-label">${c.label}</div></div><div class="stat-value">${Number(c.value).toLocaleString()}</div></div>`).join('');
-      } else {
-        $('#dashSummary', view).innerHTML = `<div class="card" style="grid-column:1/-1"><div class="card-body t-soft" style="font-size:13px">Summary unavailable: ${esc(summary.reason?.message || '')}</div></div>`;
-      }
 
       const alertList = alerts.status === 'fulfilled' && Array.isArray(alerts.value) ? alerts.value : [];
       const openCount = alertList.filter(a => ACTIVE_ALERT_STATES.includes(a.status)).length;
