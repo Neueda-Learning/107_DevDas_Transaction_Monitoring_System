@@ -476,6 +476,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg>
           <span>Rules</span>
         </a>
+        <a class="nav-item" data-route="generate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>
+          <span>Generate</span>
+        </a>
       </nav>
 
       <div class="sidebar-foot">
@@ -759,16 +763,6 @@
         <div class="stat-grid" id="dashSummary">
           ${['blue','purple','amber','red'].map(t => `<div class="stat tone-${t}"><div class="stat-top"><div class="ico"></div><div class="stat-label"><div class="skeleton" style="width:80px;height:11px"></div></div></div><div class="skeleton" style="width:50px;height:24px"></div></div>`).join('')}
         </div>
-
-        <div class="card mb-16"><div class="card-body">
-          <div class="flex items-center gap-8" style="flex-wrap:wrap">
-            <span class="lbl" style="margin:0">Generate sample transactions</span>
-            <input class="input num" id="simCount" type="number" min="1" max="200" value="10" style="width:100px">
-            <button class="btn btn-primary btn-sm" id="simGenerate">Generate</button>
-            <span class="t-soft" style="font-size:12.5px">Creates random transactions to populate data and trigger alert rules.</span>
-          </div>
-        </div></div>
-
         <div class="analytics">
           <div class="card chart-card"><div class="card-head"><h3>Transactions by status</h3></div><div class="card-body" id="chartTxn"><div class="chart-empty">Loading…</div></div></div>
           <div class="card chart-card"><div class="card-head"><h3>Alerts by severity</h3></div><div class="card-body" id="chartSev"><div class="chart-empty">Loading…</div></div></div>
@@ -783,18 +777,6 @@
       const cols = $('#dashCols', view);
       const applyResponsive = () => { cols.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '1.35fr 1fr'; };
       applyResponsive(); window.addEventListener('resize', applyResponsive);
-
-      const genBtn = $('#simGenerate', view);
-      genBtn.onclick = async () => {
-        const count = Math.max(1, Math.min(200, Number($('#simCount', view).value) || 10));
-        busy(genBtn, true, 'Generating…');
-        try {
-          const result = await api('/simulator/generate', { method: 'POST', body: JSON.stringify({ count }) });
-          const created = Number(result?.createdCount ?? result?.count ?? count);
-          toast('ok', 'Sample data generated', `Created ${created} transactions`);
-          viewDashboard(view);
-        } catch (e) { toastError(e); busy(genBtn, false); }
-      };
 
       const [alerts, stats, txnPage, txnComp, txnPend, txnFail, summary] = await Promise.allSettled([
         api('/alerts'),
@@ -902,6 +884,55 @@
           </tr>`).join('')}</tbody></table>`;
         rtBody.querySelectorAll('[data-txn]').forEach(tr => tr.onclick = () => openTxnDetail(tr.dataset.txn));
       }
+    }
+
+    // ============================================================
+    // VIEW: Generate
+    // ============================================================
+    const generateState = { count: 10 };
+    async function viewGenerate(view) {
+      view.innerHTML = `
+        <div class="card mb-16">
+          <div class="card-head"><h3>Generate sample transactions</h3></div>
+          <div class="card-body">
+            <div class="filters">
+              <label class="fg" for="simCount">
+                <span class="lbl">Number of transactions</span>
+                <input class="input num" id="simCount" type="number" min="1" max="200" value="${esc(generateState.count)}" style="width:120px">
+              </label>
+              <button class="btn btn-primary btn-sm" id="simGenerate">Generate</button>
+            </div>
+            <div class="t-soft" style="font-size:12.5px;margin-top:12px">Creates random transactions to populate data and trigger alert rules via <span class="mono">/api/v1/simulator/generate</span>.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div style="font-weight:600;margin-bottom:6px">How it works</div>
+            <div class="t-soft" style="font-size:13px;line-height:1.6">Enter how many sample transactions you want to create. The generator uses the existing simulator backend and immediately adds new transactions that can appear in the dashboard, transactions list, and alerts flow.</div>
+          </div>
+        </div>`;
+
+      const genBtn = $('#simGenerate', view);
+      const countInput = $('#simCount', view);
+      const submit = async () => {
+        const count = Math.max(1, Math.min(200, Number(countInput.value) || 10));
+        generateState.count = count;
+        countInput.value = count;
+        busy(genBtn, true, 'Generating…');
+        try {
+          const result = await api('/simulator/generate', { method: 'POST', body: JSON.stringify({ count }) });
+          const created = Number(result?.createdCount ?? result?.count ?? count);
+          toast('ok', 'Sample data generated', `Created ${created} transactions`);
+        } catch (e) {
+          toastError(e);
+        } finally {
+          busy(genBtn, false);
+        }
+      };
+
+      genBtn.onclick = submit;
+      countInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
     }
 
     // ============================================================
@@ -1575,6 +1606,7 @@
     // ============================================================
     const ROUTES = {
       dashboard: { title: 'Dashboard', render: viewDashboard },
+      generate: { title: 'Generate', render: viewGenerate },
       transactions: { title: 'Transactions', render: viewTransactions },
       alerts: { title: 'Alerts', render: viewAlerts },
       rules: { title: 'Rules', render: viewRules },
