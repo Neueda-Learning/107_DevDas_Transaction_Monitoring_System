@@ -66,7 +66,7 @@ class AlertServiceTest {
         AlertHistory history = buildHistory(10L, 1L, null, AlertStatus.OPEN, "created", "system");
         Transaction transaction = buildTransaction(transactionId);
 
-        when(alertRepository.search(eq(AlertStatus.OPEN), eq(AlertSeverity.HIGH), eq(true), org.mockito.ArgumentMatchers.<Set<AlertStatus>>any()))
+        when(alertRepository.search(eq(AlertStatus.OPEN), eq(AlertSeverity.HIGH), eq(true), any()))
                 .thenReturn(List.of(alert));
         when(alertHistoryRepository.findByAlertIdOrderByCreatedAtAsc(1L)).thenReturn(List.of(history));
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
@@ -145,7 +145,7 @@ class AlertServiceTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Triggering transaction not found: " + missingTransactionId);
 
-        verify(alertRepository, never()).replaceTriggeringTransactions(eq(22L), org.mockito.ArgumentMatchers.<List<UUID>>any());
+        verify(alertRepository, never()).replaceTriggeringTransactions(eq(22L), any());
         verify(alertHistoryRepository, never()).save(any(AlertHistory.class));
     }
 
@@ -238,6 +238,58 @@ class AlertServiceTest {
     }
 
     @Test
+    void updateStatus_closedAlsoCompletesLinkedPendingTransactions() {
+        UUID transactionId = UUID.randomUUID();
+        Alert alert = buildAlert(16L, AlertStatus.OPEN);
+        alert.setTriggeringTransactionIds(List.of(transactionId));
+        Transaction transaction = buildTransaction(transactionId);
+        transaction.setStatus(TransactionStatus.PENDING_APPROVAL);
+
+        when(alertRepository.findById(16L)).thenReturn(Optional.of(alert));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertHistoryRepository.findByAlertIdOrderByCreatedAtAsc(16L))
+                .thenReturn(List.of(buildHistory(1L, 16L, AlertStatus.OPEN, AlertStatus.CLOSED, "closed", "analyst-1")));
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.update(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AlertResponse updated = service.updateStatus(
+                16L,
+                new AlertStatusUpdateRequest(AlertStatus.CLOSED, "analyst-1", " reviewed and closed "));
+
+        assertThat(updated.status()).isEqualTo(AlertStatus.CLOSED);
+        assertThat(transaction.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
+        assertThat(transaction.getReviewedBy()).isEqualTo("analyst-1");
+        assertThat(transaction.getReviewNote()).isEqualTo("reviewed and closed");
+        verify(transactionRepository).update(transaction);
+    }
+
+    @Test
+    void updateStatus_dismissedAlsoRejectsLinkedPendingTransactions() {
+        UUID transactionId = UUID.randomUUID();
+        Alert alert = buildAlert(17L, AlertStatus.INVESTIGATING);
+        alert.setTriggeringTransactionIds(List.of(transactionId));
+        Transaction transaction = buildTransaction(transactionId);
+        transaction.setStatus(TransactionStatus.PENDING_APPROVAL);
+
+        when(alertRepository.findById(17L)).thenReturn(Optional.of(alert));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertHistoryRepository.findByAlertIdOrderByCreatedAtAsc(17L))
+                .thenReturn(List.of(buildHistory(2L, 17L, AlertStatus.INVESTIGATING, AlertStatus.DISMISSED, "dismissed", "analyst-2")));
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.update(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AlertResponse updated = service.updateStatus(
+                17L,
+                new AlertStatusUpdateRequest(AlertStatus.DISMISSED, "analyst-2", null));
+
+        assertThat(updated.status()).isEqualTo(AlertStatus.DISMISSED);
+        assertThat(transaction.getStatus()).isEqualTo(TransactionStatus.REJECTED);
+        assertThat(transaction.getReviewedBy()).isEqualTo("analyst-2");
+        assertThat(transaction.getReviewNote()).isEqualTo("Alert dismissed by alert workflow.");
+        verify(transactionRepository).update(transaction);
+    }
+
+    @Test
     void createAlertForRuleTrigger_savesAlertAndHistoryWithUniqueTriggeringIds() {
         UUID sourceId = UUID.randomUUID();
         UUID anotherId = UUID.randomUUID();
@@ -275,7 +327,7 @@ class AlertServiceTest {
         Alert first = buildAlert(91L, AlertStatus.OPEN);
         Alert second = buildAlert(92L, AlertStatus.ACKNOWLEDGED);
 
-        when(alertRepository.findActiveByTriggeringTransactionId(eq(transactionId), org.mockito.ArgumentMatchers.<Set<AlertStatus>>any()))
+        when(alertRepository.findActiveByTriggeringTransactionId(eq(transactionId), any()))
                 .thenReturn(List.of(first, second));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -295,7 +347,7 @@ class AlertServiceTest {
         UUID transactionId = UUID.randomUUID();
         Alert alert = buildAlert(93L, AlertStatus.INVESTIGATING);
 
-        when(alertRepository.findActiveByTriggeringTransactionId(eq(transactionId), org.mockito.ArgumentMatchers.<Set<AlertStatus>>any()))
+        when(alertRepository.findActiveByTriggeringTransactionId(eq(transactionId), any()))
                 .thenReturn(List.of(alert));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

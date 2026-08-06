@@ -9,6 +9,7 @@ import com.hsbc.tms.transaction.dto.TransactionRollbackDecisionRequest;
 import com.hsbc.tms.transaction.dto.TransactionRollbackRequest;
 import com.hsbc.tms.transaction.model.TransactionStatus;
 import com.hsbc.tms.transaction.model.TransactionType;
+import com.hsbc.tms.transaction.service.TransactionEventService;
 import com.hsbc.tms.transaction.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
@@ -37,9 +40,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final TransactionEventService transactionEventService;
 
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService,
+                                 TransactionEventService transactionEventService) {
         this.transactionService = transactionService;
+        this.transactionEventService = transactionEventService;
+    }
+
+    /**
+     * SSE endpoint – frontend pages subscribe here to receive real-time
+     * "transaction-updated" events whenever a transaction is created or its status changes.
+     * This keeps every page (Dashboard, Transactions, Pending Approvals, Report, etc.)
+     * automatically in sync without manual refreshes.
+     */
+    @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Subscribe to real-time transaction update events (SSE)")
+    public SseEmitter subscribeToEvents() {
+        return transactionEventService.subscribe();
     }
 
     @PostMapping

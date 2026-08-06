@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.UUID;
+import java.sql.Timestamp;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,7 @@ class AlertControllerIntegrationTest {
 
     @BeforeEach
     void clean() {
+        jdbcClient.sql("DELETE FROM transactions").update();
         jdbcClient.sql("DELETE FROM alert_transactions").update();
         jdbcClient.sql("DELETE FROM alert_history").update();
         jdbcClient.sql("DELETE FROM alerts").update();
@@ -135,6 +138,51 @@ class AlertControllerIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Validation failed"));
     }
 
+    @Test
+    void closingAlertShouldCompleteLinkedPendingTransactionAndRemoveItFromPendingApprovals() throws Exception {
+        UUID transactionId = UUID.randomUUID();
+        insertPendingTransaction(transactionId);
+
+        String alertPayload = """
+                {
+                  "ruleName": "Sync Rule",
+                  "ruleType": "NEW_PAYEE",
+                  "severity": "MEDIUM",
+                  "message": "sync case",
+                  "operatorId": "analyst-1",
+                  "triggeringTransactionIds": ["%s"]
+                }
+                """.formatted(transactionId);
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/alerts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(alertPayload))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long alertId = extractLongId(createResult.getResponse().getContentAsString());
+
+        mockMvc.perform(patch("/api/v1/alerts/{id}/status", alertId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" +
+                                "\"status\":\"CLOSED\"," +
+                                "\"operatorId\":\"analyst-2\"," +
+                                "\"note\":\"resolved from alerts page\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+
+        mockMvc.perform(get("/api/v1/transactions/{id}", transactionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.reviewedBy").value("analyst-2"))
+                .andExpect(jsonPath("$.reviewNote").value("resolved from alerts page"));
+
+        mockMvc.perform(get("/api/v1/transactions")
+                        .param("status", "PENDING_APPROVAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
     private Long createAlert(String ruleName, String message) throws Exception {
         String payload = """
                 {
@@ -157,11 +205,35 @@ class AlertControllerIntegrationTest {
     }
 
     private Long extractLongId(String responseBody) {
-        Matcher matcher = Pattern.compile("\\\"id\\\"\\s*:\\s*(\\d+)").matcher(responseBody);
+        Matcher matcher = Pattern.compile("\"id\"\\s*:\\s*(\\d+)").matcher(responseBody);
         if (matcher.find()) {
             return Long.parseLong(matcher.group(1));
         }
         throw new IllegalStateException("Could not extract numeric id from response body");
+    }
+
+    private void insertPendingTransaction(UUID id) {
+        jdbcClient.sql("""
+                INSERT INTO transactions (
+                    id, account_id, payee_id, amount, currency, type, status,
+                    transaction_time, description, created_at, updated_at
+                ) VALUES (
+                    :id, :accountId, :payeeId, :amount, :currency, :type, :status,
+                    :transactionTime, :description, :createdAt, :updatedAt
+                )
+                """)
+                .param("id", id.toString())
+                .param("accountId", "ACC-9101")
+                .param("payeeId", "PAY-910")
+                .param("amount", 123.45)
+                .param("currency", "USD")
+                .param("type", "DEBIT")
+                .param("status", "PENDING_APPROVAL")
+                .param("transactionTime", Timestamp.from(Instant.now()))
+                .param("description", "pending approval")
+                .param("createdAt", Timestamp.from(Instant.now()))
+                .param("updatedAt", Timestamp.from(Instant.now()))
+                .update();
     }
 }
 

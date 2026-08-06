@@ -14,6 +14,7 @@ import com.hsbc.tms.transaction.dto.TransactionRollbackRequest;
 import com.hsbc.tms.transaction.model.TransactionStatus;
 import com.hsbc.tms.transaction.model.TransactionType;
 import com.hsbc.tms.transaction.service.TransactionService;
+import com.hsbc.tms.transaction.service.TransactionEventService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -32,11 +33,14 @@ class TransactionControllerTest {
     @Mock
     private TransactionService transactionService;
 
+    @Mock
+    private TransactionEventService transactionEventService;
+
     private TransactionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new TransactionController(transactionService);
+        controller = new TransactionController(transactionService, transactionEventService);
     }
 
     @Test
