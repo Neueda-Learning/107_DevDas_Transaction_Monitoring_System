@@ -52,7 +52,7 @@ class JdbcAlertRepositoryTest {
 
         List<Alert> filteredRows = repository.search(AlertStatus.CLOSED, AlertSeverity.HIGH, false, activeStatuses);
         assertThat(filteredRows).hasSize(1);
-        assertThat(filteredRows.getFirst().getId()).isEqualTo(closedId);
+        assertThat(filteredRows.get(0).getId()).isEqualTo(closedId);
     }
 
     @Test

@@ -44,7 +44,7 @@ class JdbcMonitoringRuleRepositoryTest {
         List<MonitoringRule> rows = repository.findByActiveTrue();
 
         assertThat(rows).hasSize(1);
-        assertThat(rows.getFirst().getName()).isEqualTo("Rule Active");
+        assertThat(rows.get(0).getName()).isEqualTo("Rule Active");
     }
 
     @Test
@@ -90,7 +90,7 @@ class JdbcMonitoringRuleRepositoryTest {
         List<MonitoringRule> filtered = repository.search(true, RuleType.VELOCITY, AlertSeverity.MEDIUM);
 
         assertThat(filtered).hasSize(1);
-        assertThat(filtered.getFirst().getName()).isEqualTo("B");
+        assertThat(filtered.get(0).getName()).isEqualTo("B");
     }
 
     @Test

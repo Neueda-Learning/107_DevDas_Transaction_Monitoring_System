@@ -169,7 +169,7 @@ class JdbcTransactionRepositoryTest {
 
         assertThat(page.getTotalElements()).isEqualTo(2);
         assertThat(page.getContent()).hasSize(2);
-        assertThat(page.getContent().getFirst().getAmount()).isEqualByComparingTo("100.00");
+        assertThat(page.getContent().get(0).getAmount()).isEqualByComparingTo("100.00");
         assertThat(page.getContent().get(1).getAmount()).isEqualByComparingTo("500.00");
     }
 

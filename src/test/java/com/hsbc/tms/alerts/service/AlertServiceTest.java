@@ -74,10 +74,10 @@ class AlertServiceTest {
         List<AlertResponse> rows = service.getAlerts(AlertStatus.OPEN, AlertSeverity.HIGH, true);
 
         assertThat(rows).hasSize(1);
-        assertThat(rows.getFirst().id()).isEqualTo(1L);
-        assertThat(rows.getFirst().status()).isEqualTo(AlertStatus.OPEN);
-        assertThat(rows.getFirst().triggeringTransactions()).hasSize(1);
-        assertThat(rows.getFirst().history()).hasSize(1);
+        assertThat(rows.get(0).id()).isEqualTo(1L);
+        assertThat(rows.get(0).status()).isEqualTo(AlertStatus.OPEN);
+        assertThat(rows.get(0).triggeringTransactions()).hasSize(1);
+        assertThat(rows.get(0).history()).hasSize(1);
     }
 
     @Test
