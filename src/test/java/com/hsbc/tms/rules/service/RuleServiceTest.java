@@ -61,7 +61,7 @@ class RuleServiceTest {
         List<RuleResponse> responses = service.getRules(true, RuleType.AMOUNT_THRESHOLD, AlertSeverity.HIGH);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.getFirst().name()).isEqualTo("High Amount");
+        assertThat(responses.get(0).name()).isEqualTo("High Amount");
     }
 
     @Test
@@ -103,7 +103,7 @@ class RuleServiceTest {
         when(ruleAuditHistoryRepository.findByRuleIdOrderByChangedAtAsc(7L)).thenReturn(List.of(row));
 
         assertThat(service.getRuleHistory(7L)).hasSize(1);
-        assertThat(service.getRuleHistory(7L).getFirst().action()).isEqualTo(RuleAuditAction.CREATED);
+        assertThat(service.getRuleHistory(7L).get(0).action()).isEqualTo(RuleAuditAction.CREATED);
     }
 
     @Test
