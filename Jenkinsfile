@@ -4,7 +4,7 @@ pipeline {
 
     environment {
         GIT_URL = 'https://github.com/Neueda-Learning/107_DevDas_Transaction_Monitoring_System.git'
-        BRANCH = 'deployment'
+        BRANCH = 'main'
     }
 
     stages {
