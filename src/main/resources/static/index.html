@@ -442,6 +442,66 @@
       .menu-toggle { display: grid; }
       .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 55; }
     }
+
+    /* ============================================================
+       Feature Request Progress Stepper
+       ============================================================ */
+    .stepper {
+      display: flex; align-items: flex-start; gap: 0;
+      margin: 4px 0 0; position: relative;
+    }
+    .stepper-step {
+      display: flex; flex-direction: column; align-items: center;
+      flex: 1; position: relative; z-index: 1;
+    }
+    .stepper-step:not(:last-child)::after {
+      content: ''; position: absolute;
+      top: 14px; left: calc(50% + 14px);
+      width: calc(100% - 28px); height: 2px;
+      background: var(--border); z-index: 0;
+    }
+    .stepper-step.done:not(:last-child)::after { background: var(--green); }
+    .stepper-step.active:not(:last-child)::after { background: var(--border); }
+    .stepper-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid var(--border); background: var(--surface);
+      display: grid; place-items: center; font-size: 12px; font-weight: 700;
+      color: var(--text-soft); flex-shrink: 0; position: relative; z-index: 1;
+      transition: border-color .2s, background .2s, color .2s;
+    }
+    .stepper-step.done .stepper-dot {
+      background: var(--green); border-color: var(--green); color: #fff;
+    }
+    .stepper-step.active .stepper-dot {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .stepper-step.withdrawn .stepper-dot {
+      background: var(--gray); border-color: var(--gray); color: #fff;
+    }
+    .stepper-label {
+      margin-top: 7px; font-size: 11px; font-weight: 600;
+      text-align: center; color: var(--text-soft); line-height: 1.3;
+      white-space: nowrap;
+    }
+    .stepper-step.done .stepper-label { color: var(--green); }
+    .stepper-step.active .stepper-label { color: var(--accent); }
+    .stepper-step.withdrawn .stepper-label { color: var(--gray); }
+
+    /* Feature request card */
+    .fr-card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); padding: 16px 18px;
+      box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px;
+    }
+    .fr-card-top { display: flex; align-items: flex-start; gap: 12px; }
+    .fr-card-text { flex: 1; min-width: 0; }
+    .fr-card-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fr-card-desc { font-size: 12.5px; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .fr-card-meta { font-size: 11.5px; color: var(--text-soft); margin-top: 4px; }
+    .fr-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .fr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; padding: 18px; }
+    .fr-admin-note { font-size: 12px; color: var(--text-muted); background: var(--surface-2); border-radius: var(--radius-sm); padding: 8px 12px; margin-top: 4px; border-left: 3px solid var(--accent); }
   </style>
 </head>
 <body>
@@ -1383,11 +1443,31 @@
             <thead><tr><th>Name</th><th>Type</th><th>Severity</th><th>Thresholds</th><th>Status</th><th></th></tr></thead>
             <tbody id="ruleBody">${skeletonRows(6, 5)}</tbody>
           </table></div>
+        </div>
+
+        <div class="card" style="margin-top:22px">
+          <div class="card-head">
+            <h3>Rule Feature Requests</h3>
+            <div class="spacer"></div>
+            <button class="btn btn-sm btn-ghost" id="frRefreshBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Refresh
+            </button>
+            <button class="btn btn-primary btn-sm" id="newFeatureRequestBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Request New Rule
+            </button>
+          </div>
+          <div id="frSection" style="min-height:80px"></div>
         </div>`;
+
       $('#newRuleBtn', view).onclick = () => openRuleForm();
       $('#ruleFilter', view).onchange = () => loadRules(view);
+      $('#newFeatureRequestBtn', view).onclick = () => openFeatureRequestForm(view);
+      $('#frRefreshBtn', view).onclick = () => loadFeatureRequests(view);
       loadRuleStats(view);
       loadRules(view);
+      loadFeatureRequests(view);
     }
     async function loadRuleStats(view) {
       try {
@@ -1547,6 +1627,184 @@
       } catch (e) { body.innerHTML = emptyState('Could not load history', e.message); }
     }
     function prettyJson(s) { try { return JSON.stringify(JSON.parse(s), null, 2); } catch { return String(s); } }
+
+    // ============================================================
+    // Feature Requests
+    // ============================================================
+    const FR_STATUSES = ['REQUESTED', 'BANK_APPROVAL', 'IMPLEMENTED'];
+    const FR_STATUS_LABELS = {
+      REQUESTED:    'Rule Requested',
+      BANK_APPROVAL:'Bank Approval',
+      IMPLEMENTED:  'Rule Implemented',
+      WITHDRAWN:    'Withdrawn',
+    };
+    const FR_STATUS_TONE = {
+      REQUESTED: 'blue', BANK_APPROVAL: 'amber', IMPLEMENTED: 'green', WITHDRAWN: 'gray',
+    };
+
+    function buildStepper(currentStatus) {
+      const isWithdrawn = currentStatus === 'WITHDRAWN';
+      return `<div class="stepper">` + FR_STATUSES.map((s, i) => {
+        let cls = '';
+        const idx = FR_STATUSES.indexOf(currentStatus);
+        if (isWithdrawn) {
+          cls = i === 0 ? 'withdrawn' : '';
+        } else if (i < idx) {
+          cls = 'done';
+        } else if (i === idx) {
+          cls = 'active';
+        }
+        const icon = cls === 'done'
+          ? `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+          : (i + 1);
+        return `<div class="stepper-step ${cls}">
+          <div class="stepper-dot">${icon}</div>
+          <div class="stepper-label">${esc(FR_STATUS_LABELS[s] || s)}</div>
+        </div>`;
+      }).join('') + `</div>`;
+    }
+
+    async function loadFeatureRequests(view) {
+      const section = $('#frSection', view);
+      if (!section) return;
+      section.innerHTML = `<div class="fr-grid">${[1,2,3].map(() => `<div class="fr-card"><div class="skeleton" style="height:14px;width:60%;margin-bottom:8px"></div><div class="skeleton" style="height:10px;width:90%"></div><div class="skeleton" style="height:10px;width:75%;margin-top:5px"></div></div>`).join('')}</div>`;
+      try {
+        let list = await api('/rule-requests');
+        if (!Array.isArray(list)) list = [];
+        if (!list.length) {
+          section.innerHTML = `<div class="empty" style="padding:32px 20px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <h4>No feature requests yet</h4>
+            <p>Click "Request New Rule" to ask the development team to build a new monitoring rule.</p>
+          </div>`;
+          return;
+        }
+        section.innerHTML = `<div class="fr-grid">${list.map(fr => renderFrCard(fr)).join('')}</div>`;
+        section.querySelectorAll('[data-fr-track]').forEach(b => b.onclick = () => openFrTrack(b.dataset.frTrack, view));
+        section.querySelectorAll('[data-fr-withdraw]').forEach(b => b.onclick = () => withdrawFr(b.dataset.frWithdraw, view));
+      } catch (e) {
+        section.innerHTML = `<div class="card-body t-soft" style="font-size:13px;padding:18px">Could not load feature requests: ${esc(e.message)}</div>`;
+      }
+    }
+
+    function renderFrCard(fr) {
+      const canWithdraw = fr.status === 'REQUESTED' || fr.status === 'BANK_APPROVAL';
+      const isTerminal = fr.status === 'IMPLEMENTED' || fr.status === 'WITHDRAWN';
+      return `<div class="fr-card">
+        <div class="fr-card-top">
+          <div class="fr-card-text">
+            <div class="fr-card-title">${esc(fr.title)}</div>
+            <div class="fr-card-desc">${esc(fr.description)}</div>
+            <div class="fr-card-meta">Requested by <b>${esc(fr.requestedBy)}</b> · ${relTime(fr.createdAt)}</div>
+          </div>
+          <span class="badge b-${FR_STATUS_TONE[fr.status] || 'gray'} no-dot">${esc(FR_STATUS_LABELS[fr.status] || fr.status)}</span>
+        </div>
+        ${buildStepper(fr.status)}
+        ${fr.adminNote ? `<div class="fr-admin-note"><b>Note:</b> ${esc(fr.adminNote)}</div>` : ''}
+        <div class="fr-card-actions">
+          <button class="btn btn-sm" data-fr-track="${fr.id}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Track
+          </button>
+          ${canWithdraw ? `<button class="btn btn-sm btn-danger" data-fr-withdraw="${fr.id}">Withdraw</button>` : ''}
+        </div>
+      </div>`;
+    }
+
+    function openFeatureRequestForm(view) {
+      const form = el(`<form id="frForm" class="form-grid">
+        <label class="field full"><span class="lbl">Rule Title <span class="req">*</span></span>
+          <input class="input" name="title" required maxlength="200" placeholder="e.g. Block transfers to high-risk countries">
+          <div class="hint">A short, clear name for the rule you want implemented.</div>
+        </label>
+        <label class="field full"><span class="lbl">Description <span class="req">*</span></span>
+          <textarea class="input" name="description" required maxlength="4000" style="min-height:110px" placeholder="Explain the rule in detail: what transactions should it flag, what conditions it should check, when it should trigger an alert, and any other important details..."></textarea>
+          <div class="hint">The more detail you provide, the better the developer can implement it.</div>
+        </label>
+      </form>`);
+      let submitBtn;
+      const footer = footerButtons([
+        { label: 'Cancel', class: 'btn-ghost', onClick: closeModal },
+        { label: 'Submit Request', class: 'btn-primary', ref: b => submitBtn = b, onClick: submit },
+      ]);
+      openModal({ title: 'Request a New Rule', sub: 'Describe the rule you want the development team to build.', body: form, footer });
+      form.addEventListener('submit', e => { e.preventDefault(); submit(); });
+      async function submit() {
+        if (!form.reportValidity()) return;
+        const fd = new FormData(form);
+        const payload = {
+          title: fd.get('title').trim(),
+          description: fd.get('description').trim(),
+          requestedBy: CFG.operator,
+        };
+        busy(submitBtn, true, 'Submitting…');
+        try {
+          await api('/rule-requests', { method: 'POST', body: JSON.stringify(payload) });
+          closeModal();
+          toast('ok', 'Request submitted!', 'Your rule request has been sent to the development team.');
+          if (currentRoute === 'rules') loadFeatureRequests($('#view'));
+        } catch (e) { toastError(e); busy(submitBtn, false); }
+      }
+    }
+
+    async function openFrTrack(id, view) {
+      const body = el(`<div>
+        <div class="skeleton" style="height:14px;width:50%;margin-bottom:10px"></div>
+        <div class="skeleton" style="height:60px;width:100%"></div>
+      </div>`);
+      const overlay = openModal({ title: 'Track Request', sub: 'Loading…', body, wide: false, footer: document.createDocumentFragment() });
+      try {
+        const fr = await api('/rule-requests/' + id);
+        overlay.querySelector('.modal-head .sub').textContent = fr.title;
+        body.innerHTML = `
+          <div class="flex items-center gap-8 mb-16" style="flex-wrap:wrap">
+            <span class="badge b-${FR_STATUS_TONE[fr.status] || 'gray'} no-dot">${esc(FR_STATUS_LABELS[fr.status] || fr.status)}</span>
+            <span class="t-soft" style="font-size:12px">Updated ${relTime(fr.updatedAt)}</span>
+          </div>
+          <dl class="detail-list" style="margin-bottom:18px">
+            <dt>Title</dt><dd>${esc(fr.title)}</dd>
+            <dt>Description</dt><dd style="white-space:pre-wrap">${esc(fr.description)}</dd>
+            <dt>Requested by</dt><dd>${esc(fr.requestedBy)}</dd>
+            <dt>Submitted</dt><dd>${fmtDate(fr.createdAt)}</dd>
+            <dt>Last updated</dt><dd>${fmtDate(fr.updatedAt)}</dd>
+            ${fr.adminNote ? `<dt>Developer note</dt><dd>${esc(fr.adminNote)}</dd>` : ''}
+          </dl>
+          <div class="section-title">Progress</div>
+          ${buildStepper(fr.status)}
+          ${fr.status === 'WITHDRAWN' ? `<div class="fr-admin-note" style="margin-top:14px">This request was withdrawn${fr.adminNote ? ': ' + esc(fr.adminNote) : ''}.</div>` : ''}
+          ${fr.status === 'IMPLEMENTED' ? `<div class="fr-admin-note" style="margin-top:14px;border-left-color:var(--green)">🎉 This rule has been implemented! Check the rules list above to see it in action.</div>` : ''}
+        `;
+        const foot = overlay.querySelector('.modal-foot');
+        foot.innerHTML = '';
+        const closeBtn = el('<button class="btn btn-ghost">Close</button>'); closeBtn.onclick = closeModal; foot.append(closeBtn);
+        if (fr.status === 'REQUESTED' || fr.status === 'BANK_APPROVAL') {
+          const wBtn = el('<button class="btn btn-danger btn-sm">Withdraw Request</button>');
+          wBtn.onclick = () => { closeModal(); withdrawFr(id, view); };
+          foot.append(wBtn);
+        }
+      } catch (e) {
+        body.innerHTML = emptyState('Could not load request', e.message);
+      }
+    }
+
+    async function withdrawFr(id, view) {
+      const body = el(`<div><p style="margin:0;font-size:14px;color:var(--text-muted)">Are you sure you want to <b>withdraw</b> this feature request? This cannot be undone.</p></div>`);
+      let btn;
+      const footer = footerButtons([
+        { label: 'Cancel', class: 'btn-ghost', onClick: closeModal },
+        { label: 'Withdraw', class: 'btn-danger', ref: b => btn = b, onClick: confirm },
+      ]);
+      openModal({ title: 'Withdraw Request', body, footer });
+      async function confirm() {
+        busy(btn, true, 'Withdrawing…');
+        try {
+          await api('/rule-requests/' + id + '/withdraw', { method: 'PATCH', body: JSON.stringify({ requestedBy: CFG.operator }) });
+          closeModal();
+          toast('ok', 'Request withdrawn', 'Your feature request has been withdrawn.');
+          if (currentRoute === 'rules') loadFeatureRequests($('#view'));
+        } catch (e) { toastError(e); busy(btn, false); }
+      }
+    }
 
     // ============================================================
     // Settings
