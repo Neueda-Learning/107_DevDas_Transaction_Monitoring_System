@@ -4,6 +4,7 @@ import com.hsbc.tms.rules.entity.MonitoringRule;
 import com.hsbc.tms.rules.model.RuleType;
 import com.hsbc.tms.rules.repository.RuleTransactionMetricsRepository;
 import com.hsbc.tms.transaction.model.Transaction;
+import com.hsbc.tms.transaction.model.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,8 +36,12 @@ public class DailyLimitRuleEvaluator implements RuleEvaluator {
         Instant startOfDay = day.atStartOfDay().toInstant(ZoneOffset.UTC);
         Instant endOfDay = day.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC).minusNanos(1);
 
-        BigDecimal total = metricsRepository.sumAmountByAccountAndTransactionTimeRange(
-                transaction.getAccountId(), startOfDay, endOfDay);
+        // Only sum COMPLETED transactions for daily limit rule evaluation
+        BigDecimal total = metricsRepository.sumAmountByAccountAndTransactionTimeRangeAndStatus(
+                transaction.getAccountId(), startOfDay, endOfDay, TransactionStatus.COMPLETED);
+        if (total == null) {
+            total = BigDecimal.ZERO;
+        }
 
         if (total.compareTo(rule.getAmountThreshold()) > 0) {
             String reason = "Daily limit exceeded for account " + transaction.getAccountId()

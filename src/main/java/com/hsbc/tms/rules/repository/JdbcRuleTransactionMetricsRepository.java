@@ -43,6 +43,8 @@ public class JdbcRuleTransactionMetricsRepository implements RuleTransactionMetr
                 .single();
     }
 
+
+
     @Override
     public List<Transaction> findByAccountIdAndTransactionTimeBetween(String accountId, Instant fromTime, Instant toTime) {
         String sql = """
@@ -59,6 +61,28 @@ public class JdbcRuleTransactionMetricsRepository implements RuleTransactionMetr
                 .param("accountId", accountId)
                 .param("fromTime", Timestamp.from(fromTime))
                 .param("toTime", Timestamp.from(toTime))
+                .query(TRANSACTION_ROW_MAPPER)
+                .list();
+    }
+
+    @Override
+    public List<Transaction> findByAccountIdAndTransactionTimeBetweenAndStatus(String accountId, Instant fromTime, Instant toTime, TransactionStatus status) {
+        String sql = """
+                SELECT id, account_id, payee_id, amount, currency, type, status,
+                       transaction_time, description, created_at, updated_at
+                FROM transactions
+                WHERE account_id = :accountId
+                  AND transaction_time >= :fromTime
+                  AND transaction_time <= :toTime
+                  AND status = :status
+                ORDER BY transaction_time ASC
+                """;
+
+        return jdbcClient.sql(sql)
+                .param("accountId", accountId)
+                .param("fromTime", Timestamp.from(fromTime))
+                .param("toTime", Timestamp.from(toTime))
+                .param("status", status.name())
                 .query(TRANSACTION_ROW_MAPPER)
                 .list();
     }
@@ -95,6 +119,27 @@ public class JdbcRuleTransactionMetricsRepository implements RuleTransactionMetr
                 .param("accountId", accountId)
                 .param("fromTime", Timestamp.from(fromTime))
                 .param("toTime", Timestamp.from(toTime))
+                .query(BigDecimal.class)
+                .single();
+        return total == null ? BigDecimal.ZERO : total;
+    }
+
+    @Override
+    public BigDecimal sumAmountByAccountAndTransactionTimeRangeAndStatus(String accountId, Instant fromTime, Instant toTime, TransactionStatus status) {
+        String sql = """
+                SELECT COALESCE(SUM(amount), 0)
+                FROM transactions
+                WHERE account_id = :accountId
+                  AND transaction_time >= :fromTime
+                  AND transaction_time <= :toTime
+                  AND status = :status
+                """;
+
+        BigDecimal total = jdbcClient.sql(sql)
+                .param("accountId", accountId)
+                .param("fromTime", Timestamp.from(fromTime))
+                .param("toTime", Timestamp.from(toTime))
+                .param("status", status.name())
                 .query(BigDecimal.class)
                 .single();
         return total == null ? BigDecimal.ZERO : total;

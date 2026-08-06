@@ -1,0 +1,64 @@
+*   [33m2a78e26[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge branch 'main' of https://github.com/Neueda-Learning/107_DevDas_Transaction_Monitoring_System
+[31m|[m[32m\[m  
+[31m|[m * [33mfe08b10[m changed generate position
+[31m|[m *   [33m7baa20d[m Merge branch 'main' into alert_management generate button added
+[31m|[m [33m|[m[34m\[m  
+[31m|[m [33m|[m *   [33m878ae35[m Merge branch 'main' of https://github.com/Neueda-Learning/107_DevDas_Transaction_Monitoring_System
+[31m|[m [33m|[m [35m|[m[36m\[m  
+[31m|[m [33m|[m [35m|[m * [33m6f4067b[m Added Customer-Meeting-2.md
+[31m|[m [33m|[m * [36m|[m [33m33a298b[m generate button
+[31m|[m [33m|[m [36m|[m[36m/[m  
+[31m|[m * [36m|[m [33m0457c18[m generate button
+* [36m|[m [36m|[m [33mc9cb9b8[m Modified Transaction Simulator
+[36m|[m [36m|[m[36m/[m  
+[36m|[m[36m/[m[36m|[m   
+* [36m|[m   [33m70d26ee[m Fixed Integration of backend and frontend
+[1;31m|[m[1;32m\[m [36m\[m  
+[1;31m|[m * [36m\[m   [33m5d0ce6e[m Updated README.md, change-log.md, Added transaction-management.md
+[1;31m|[m [1;33m|[m[1;34m\[m [36m\[m  
+[1;31m|[m * [1;34m\[m [36m\[m   [33mf963a86[m Updated README.md, change-log.md, Added transaction-management.md
+[1;31m|[m [1;35m|[m[1;36m\[m [1;34m\[m [36m\[m  
+[1;31m|[m [1;35m|[m * [1;34m|[m [36m|[m [33mb540fec[m[33m ([m[1;31morigin/transaction_management[m[33m, [m[1;32mtransaction_management[m[33m)[m Updated README.md, change-log.md, Added transaction-management.md
+[1;31m|[m * [1;36m|[m [1;34m|[m [36m|[m   [33m8e1535d[m Merge branch 'rules-management' into main
+[1;31m|[m [31m|[m[32m\[m [1;36m\[m [1;34m\[m [36m\[m  
+[1;31m|[m [31m|[m * [1;36m|[m [1;34m|[m [36m|[m [33m1f7be01[m Seed default monitoring rules and fix alert id retrieval on save
+[1;31m|[m [31m|[m[31m/[m [1;36m/[m [1;34m/[m [36m/[m  
+[1;31m|[m * [1;36m|[m [1;34m|[m [36m|[m   [33m5a49594[m Merge branch 'alert_management' into main
+[1;31m|[m [33m|[m[34m\[m [1;36m\[m [1;34m\[m [36m\[m  
+[1;31m|[m [33m|[m * [1;36m|[m [1;34m|[m [36m|[m [33m1bfbfc7[m Add dashboard summary and transaction simulator
+[1;31m|[m [33m|[m[33m/[m [1;36m/[m [1;34m/[m [36m/[m  
+[1;31m|[m * [1;36m|[m [1;34m|[m [36m|[m   [33m4e50b68[m Merge branch 'transaction_management' into main
+[1;31m|[m [35m|[m[36m\[m [1;36m\[m [1;34m\[m [36m\[m  
+[1;31m|[m [35m|[m * [1;36m|[m [1;34m|[m [36m|[m [33m5637641[m Add transaction approve/reject/rollback/refund workflow
+[1;31m|[m [35m|[m[35m/[m [1;36m/[m [1;34m/[m [36m/[m  
+[1;31m|[m * [1;36m|[m [1;34m|[m [36m|[m [33m0cdb7c3[m Add SPA frontend for dashboard, transactions, alerts, and rules
+* [36m|[m [1;36m|[m [1;34m|[m [36m|[m [33ma966bd6[m Fixed Integration of backend and frontend
+[1;34m|[m [36m|[m[1;34m_[m[1;36m|[m[1;34m/[m [36m/[m  
+[1;34m|[m[1;34m/[m[36m|[m [1;36m|[m [36m|[m   
+* [36m|[m [1;36m|[m [36m|[m   [33m98de046[m Merge branch 'rules-management' into main
+[1;31m|[m[1;32m\[m [36m\[m [1;36m\[m [36m\[m  
+[1;31m|[m * [36m|[m [1;36m|[m [36m|[m [33m8971d8b[m[33m ([m[1;31morigin/rules-management[m[33m)[m Seed default monitoring rules and fix alert id retrieval on save
+[1;31m|[m[1;31m/[m [36m/[m [1;36m/[m [36m/[m  
+* [36m|[m [1;36m|[m [36m|[m   [33m23a3a76[m Merge branch 'alert_management' into main
+[1;33m|[m[36m\[m [36m\[m [1;36m\[m [36m\[m  
+[1;33m|[m [36m|[m [36m|[m[36m_[m[1;36m|[m[36m/[m  
+[1;33m|[m [36m|[m[36m/[m[36m|[m [1;36m|[m   
+[1;33m|[m * [36m|[m [1;36m|[m [33m9abd21a[m[33m ([m[1;31morigin/alert_management[m[33m)[m Add dashboard summary and transaction simulator
+[1;33m|[m[1;33m/[m [36m/[m [1;36m/[m  
+* [36m|[m [1;36m|[m   [33me033d77[m Merge branch 'transaction_management' into main
+[1;35m|[m[1;36m\[m [36m\[m [1;36m\[m  
+[1;35m|[m [1;36m|[m [36m|[m[1;36m/[m  
+[1;35m|[m [1;36m|[m[1;36m/[m[36m|[m   
+[1;35m|[m * [36m|[m [33ma7abfb7[m Add transaction approve/reject/rollback/refund workflow
+[1;35m|[m[1;35m/[m [36m/[m  
+* [36m/[m [33mce08e99[m Add SPA frontend for dashboard, transactions, alerts, and rules
+[36m|[m[36m/[m  
+* [33m2bd205a[m Done alert management
+* [33ma949ee6[m Implemented Rules Management
+*   [33m8856006[m Updated Customer-Meeting
+[31m|[m[32m\[m  
+[31m|[m * [33m9b5c729[m Updated Customer-Meeting-1
+* [32m|[m [33m15004a2[m Updated Customer-Meeting
+* [32m|[m [33m108a254[m Done basic implementation of transactions
+[32m|[m[32m/[m  
+* [33m895f2ac[m Initial Commit
