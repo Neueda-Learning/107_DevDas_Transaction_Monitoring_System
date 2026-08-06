@@ -15,6 +15,7 @@ import com.hsbc.tms.rules.entity.MonitoringRule;
 import com.hsbc.tms.rules.model.AlertSeverity;
 import com.hsbc.tms.transaction.dto.TransactionResponse;
 import com.hsbc.tms.transaction.model.Transaction;
+import com.hsbc.tms.transaction.model.TransactionStatus;
 import com.hsbc.tms.transaction.repository.TransactionRepository;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -127,6 +128,7 @@ public class AlertService {
         }
 
         transitionAlert(alert, request.status(), request.operatorId().trim(), normalizeNote(request.note(), "Status updated"));
+        syncLinkedTransactionsForAlertDecision(alert, request.status(), request.operatorId(), request.note());
         return toAlertResponse(alert);
     }
 
@@ -228,6 +230,43 @@ public class AlertService {
         history.setChangedBy(changedBy);
         history.setCreatedAt(Instant.now());
         alertHistoryRepository.save(history);
+    }
+
+    private void syncLinkedTransactionsForAlertDecision(Alert alert, AlertStatus alertStatus, String operatorId, String note) {
+        TransactionStatus nextTransactionStatus = switch (alertStatus) {
+            case CLOSED -> TransactionStatus.COMPLETED;
+            case DISMISSED -> TransactionStatus.REJECTED;
+            default -> null;
+        };
+
+        if (nextTransactionStatus == null) {
+            return;
+        }
+
+        String actor = operatorId == null || operatorId.isBlank() ? "system" : operatorId.trim();
+        String defaultNote = switch (nextTransactionStatus) {
+            case COMPLETED -> "Alert closed by alert workflow.";
+            case REJECTED -> "Alert dismissed by alert workflow.";
+            default -> "Status updated by alert workflow.";
+        };
+        String normalizedNote = normalizeNote(note, defaultNote);
+        Instant now = Instant.now();
+
+        for (UUID transactionId : alert.getTriggeringTransactionIds()) {
+            Transaction transaction = transactionRepository.findById(transactionId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Triggering transaction not found: " + transactionId));
+
+            if (transaction.getStatus() != TransactionStatus.PENDING_APPROVAL) {
+                continue;
+            }
+
+            transaction.setStatus(nextTransactionStatus);
+            transaction.setReviewedBy(actor);
+            transaction.setReviewedAt(now);
+            transaction.setReviewNote(normalizedNote);
+            transaction.setUpdatedAt(now);
+            transactionRepository.update(transaction);
+        }
     }
 
     private String normalizeNote(String note, String defaultNote) {

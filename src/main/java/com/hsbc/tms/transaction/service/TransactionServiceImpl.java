@@ -20,6 +20,7 @@ import java.util.List;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,16 +37,19 @@ public class TransactionServiceImpl implements TransactionService {
     private final RuleEngineService ruleEngineService;
     private final AlertService alertService;
     private final AlertRepository alertRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TransactionServiceImpl(
             TransactionRepository transactionRepository,
             RuleEngineService ruleEngineService,
             AlertService alertService,
-            AlertRepository alertRepository) {
+            AlertRepository alertRepository,
+            ApplicationEventPublisher eventPublisher) {
         this.transactionRepository = transactionRepository;
         this.ruleEngineService = ruleEngineService;
         this.alertService = alertService;
         this.alertRepository = alertRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -77,6 +81,7 @@ public class TransactionServiceImpl implements TransactionService {
             // but confirming transaction is persisted with PENDING_APPROVAL status before alert reference is resolved
         }
 
+        eventPublisher.publishEvent(new TransactionUpdatedEvent(this, saved.getId(), saved.getStatus().name()));
         return toResponse(saved);
     }
 
@@ -125,6 +130,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction updated = transactionRepository.update(transaction);
         alertService.resolveAlertsForTransactionDecision(id, request.operatorId(), true, request.note());
+        eventPublisher.publishEvent(new TransactionUpdatedEvent(this, updated.getId(), updated.getStatus().name()));
         return toResponse(updated);
     }
 
@@ -144,6 +150,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction updated = transactionRepository.update(transaction);
         alertService.resolveAlertsForTransactionDecision(id, request.operatorId(), false, request.note());
+        eventPublisher.publishEvent(new TransactionUpdatedEvent(this, updated.getId(), updated.getStatus().name()));
         return toResponse(updated);
     }
 
@@ -163,7 +170,9 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setRollbackRequestedAt(Instant.now());
         transaction.setUpdatedAt(Instant.now());
 
-        return toResponse(transactionRepository.update(transaction));
+        Transaction updated = transactionRepository.update(transaction);
+        eventPublisher.publishEvent(new TransactionUpdatedEvent(this, updated.getId(), updated.getStatus().name()));
+        return toResponse(updated);
     }
 
     @Override
@@ -186,7 +195,11 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction savedRefund = transactionRepository.save(refund);
         transaction.setRefundTransactionId(savedRefund.getId());
 
-        return toResponse(transactionRepository.update(transaction));
+        Transaction updated = transactionRepository.update(transaction);
+        // Publish events for both the original (now REFUNDED) and the refund (COMPLETED) transactions
+        eventPublisher.publishEvent(new TransactionUpdatedEvent(this, updated.getId(), updated.getStatus().name()));
+        eventPublisher.publishEvent(new TransactionUpdatedEvent(this, savedRefund.getId(), savedRefund.getStatus().name()));
+        return toResponse(updated);
     }
 
     @Override
@@ -203,7 +216,9 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setRollbackReviewNote(normalizeNote(request.note(), "Rollback rejected"));
         transaction.setUpdatedAt(Instant.now());
 
-        return toResponse(transactionRepository.update(transaction));
+        Transaction updated = transactionRepository.update(transaction);
+        eventPublisher.publishEvent(new TransactionUpdatedEvent(this, updated.getId(), updated.getStatus().name()));
+        return toResponse(updated);
     }
 
     private Transaction getOrThrow(UUID id) {

@@ -979,6 +979,7 @@
       const url = CFG.base + path;
       const res = await fetch(url, {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        cache: 'no-store',
         ...opts,
       });
       let data = null;
@@ -1727,8 +1728,7 @@
           const t = await api('/transactions', { method: 'POST', body: JSON.stringify(payload) });
           closeModal();
           toast('ok', 'Transaction recorded', `${fmtMoney(t.amount, t.currency)} · ${t.accountId}`);
-          if (currentRoute === 'transactions') loadTxns($('#view'));
-          if (currentRoute === 'dashboard') viewDashboard($('#view'));
+          refreshAfterMutation();
         } catch (e) { toastError(e); busy(submitBtn, false); }
       }
     }
@@ -1781,7 +1781,7 @@
          const foot = overlay.querySelector('.modal-foot');
          foot.innerHTML = '';
          const cancel = el('<button class="btn btn-ghost">Close</button>'); cancel.onclick = closeModal; foot.append(cancel);
-         const onDone = () => { closeModal(); if (currentRoute === 'transactions') loadTxns($('#view')); else if (currentRoute === 'pending-approvals') loadPendingApprovals($('#view')); else if (currentRoute === 'dashboard') viewDashboard($('#view')); };
+         const onDone = () => { closeModal(); refreshAfterMutation(); };
         if (t.status === 'PENDING_APPROVAL') {
           const rej = el('<button class="btn btn-danger btn-sm">Reject</button>');
           rej.onclick = () => promptTxnDecision(t, 'reject', onDone);
@@ -2232,7 +2232,7 @@
           const tone = ALERT_STATUS_TONE[target];
           const isNeg = target === 'DISMISSED';
           const b = el(`<button class="btn ${isNeg ? 'btn-danger' : 'btn-primary'} btn-sm">${esc(titleCase(target))}</button>`);
-          b.onclick = () => promptTransition(a, target, () => { closeModal(); if (currentRoute === 'alerts') loadAlerts($('#view')); else if (currentRoute === 'dashboard') viewDashboard($('#view')); });
+          b.onclick = () => promptTransition(a, target, () => { closeModal(); refreshAfterMutation(); });
           foot.append(b);
         });
       } catch (e) {
@@ -2272,6 +2272,74 @@
     }
     async function refreshAlertBadge() {
       try { const list = await api('/alerts' + qs({ activeOnly: true })); updateAlertBadge(list); } catch {}
+    }
+    async function refreshAfterMutation() {
+      await refreshAlertBadge();
+      const view = $('#view');
+      if (!view) return;
+      if (currentRoute === 'dashboard') return viewDashboard(view);
+      if (currentRoute === 'transactions') return loadTxns(view);
+      if (currentRoute === 'pending-approvals') return loadPendingApprovals(view);
+      if (currentRoute === 'alerts') return loadAlerts(view);
+      if (currentRoute === 'report') return loadReport(view, reportState.tab || 'transactions');
+    }
+
+    // ============================================================
+    // Real-time SSE – transaction status sync across all pages
+    // ============================================================
+    // When any transaction is created or its status changes the backend
+    // pushes a "transaction-updated" SSE event to every connected client.
+    // The frontend receives it and calls refreshAfterMutation() so that
+    // whichever page is currently visible (Dashboard, Transactions,
+    // Pending Approvals, Report, etc.) automatically shows the latest
+    // statuses without requiring a manual page refresh.
+
+    let _sseSource = null;
+    let _sseReconnectTimer = null;
+    let _ssePendingRefresh = null;
+
+    function connectSSE() {
+      if (_sseSource) {
+        try { _sseSource.close(); } catch (ignore) {}
+        _sseSource = null;
+      }
+      clearTimeout(_sseReconnectTimer);
+
+      try {
+        _sseSource = new EventSource(CFG.base + '/transactions/events');
+
+        // Suppress "connected" ping — it is just a liveness check.
+        _sseSource.addEventListener('connected', function () {});
+
+        // A transaction was created or its status changed.
+        // Debounce rapid bursts (e.g. bulk simulation) into a single refresh.
+        _sseSource.addEventListener('transaction-updated', function () {
+          clearTimeout(_ssePendingRefresh);
+          _ssePendingRefresh = setTimeout(function () {
+            refreshAfterMutation();
+          }, 400);
+        });
+
+        _sseSource.onerror = function () {
+          if (_sseSource) {
+            try { _sseSource.close(); } catch (ignore) {}
+            _sseSource = null;
+          }
+          // Reconnect after 5 s – the backend might have restarted.
+          _sseReconnectTimer = setTimeout(connectSSE, 5000);
+        };
+      } catch (e) {
+        _sseReconnectTimer = setTimeout(connectSSE, 5000);
+      }
+    }
+
+    function disconnectSSE() {
+      clearTimeout(_sseReconnectTimer);
+      clearTimeout(_ssePendingRefresh);
+      if (_sseSource) {
+        try { _sseSource.close(); } catch (ignore) {}
+        _sseSource = null;
+      }
     }
 
     // ============================================================
@@ -2682,6 +2750,8 @@
         store.set('tms.operator', CFG.operator); store.set('tms.base', CFG.base);
         $('#operatorChip').textContent = CFG.operator;
         closeModal(); toast('ok', 'Settings saved'); checkHealth(); refreshAlertBadge();
+        // Reconnect SSE to the (possibly new) base URL so cross-page sync continues.
+        connectSSE();
       }
     }
 
@@ -2774,6 +2844,9 @@
       checkHealth();
       refreshAlertBadge();
       setInterval(refreshAlertBadge, 60000);
+      // Connect to the real-time SSE stream so every page stays in sync
+      // with the latest transaction statuses automatically.
+      connectSSE();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
