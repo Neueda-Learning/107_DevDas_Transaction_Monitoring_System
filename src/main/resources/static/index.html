@@ -389,46 +389,90 @@
     /* ============================================================
        Hero banner
        ============================================================ */
+    @keyframes floatGlow { 0%,100%{ transform: translate(0,0) scale(1); } 50%{ transform: translate(8px,-10px) scale(1.03); } }
+    @keyframes shimmerBand { 0%{ transform: translateX(-120%); } 100%{ transform: translateX(120%); } }
     .hero {
       position: relative; overflow: hidden;
       border-radius: 16px; margin-bottom: 22px;
-      padding: 26px 28px; color: #fff;
-      background: linear-gradient(115deg, #db0011 0%, #a3000d 42%, #14161a 100%);
-      box-shadow: var(--shadow-lg);
+      padding: 28px 30px; color: #fff;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255,255,255,.14), transparent 24%),
+        radial-gradient(circle at 82% 28%, rgba(255,255,255,.09), transparent 18%),
+        linear-gradient(125deg, #ff2d55 0%, #d11f32 18%, #7b1020 52%, #151a2d 100%);
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 18px 60px rgba(20,24,40,.22), 0 3px 12px rgba(0,0,0,.1);
       display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
     }
-    .hero::before {
-      content: ""; position: absolute; right: -60px; top: -80px;
-      width: 320px; height: 320px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,.14), transparent 62%);
-      pointer-events: none;
+    .hero::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.08) 48%, transparent 64%);
+      transform: translateX(-120%); animation: shimmerBand 7.5s ease-in-out infinite;
+      pointer-events: none; opacity: .55;
     }
-    .hero .hex { position: absolute; right: 210px; top: 50%; transform: translateY(-50%); width: 150px; height: 150px; opacity: .10; pointer-events: none; }
-    .hero-text { position: relative; z-index: 1; }
-    .hero-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .82; }
-    .hero h2 { font-size: 23px; margin: 6px 0 5px; letter-spacing: -.02em; }
-    .hero p { margin: 0; opacity: .85; font-size: 13.5px; max-width: 46ch; }
-    .hero-kpis { position: relative; z-index: 1; margin-left: auto; display: flex; gap: 30px; }
-    .hero-kpi .hk-value { font-size: 40px; font-weight: 760; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-    .hero-kpi .hk-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; opacity: .82; margin-top: 6px; }
+    .hero::before {
+      content: ""; position: absolute; right: -50px; top: -70px;
+      width: 320px; height: 320px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,.16), transparent 62%);
+      pointer-events: none; animation: floatGlow 10s ease-in-out infinite;
+    }
+    .hero .hex { position: absolute; right: 210px; top: 50%; transform: translateY(-50%); width: 160px; height: 160px; opacity: .12; pointer-events: none; filter: drop-shadow(0 0 20px rgba(255,255,255,.08)); }
+    .hero-text { position: relative; z-index: 1; max-width: 48ch; }
+    .hero-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; opacity: .86; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
+      padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+      color: rgba(255,255,255,.94); background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(10px);
+    }
+    .hero-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.14); }
+    .hero h2 { font-size: 26px; margin: 10px 0 6px; letter-spacing: -.03em; }
+    .hero p { margin: 0; opacity: .9; font-size: 13.8px; max-width: 46ch; }
+    .hero-kpis {
+      position: relative; z-index: 1; margin-left: auto; display: flex; gap: 16px;
+      padding: 14px 16px; border-radius: 18px;
+      background: rgba(12,14,24,.24); border: 1px solid rgba(255,255,255,.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.15);
+      backdrop-filter: blur(14px) saturate(160%);
+    }
+    .hero-kpi { min-width: 92px; }
+    .hero-kpi .hk-value { font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .hero-kpi .hk-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; opacity: .86; margin-top: 7px; }
     .hero-kpi .hk-sep { width: 1px; background: rgba(255,255,255,.22); }
-    @media (max-width: 680px){ .hero-kpis { margin-left: 0; gap: 22px; } .hero h2 { font-size: 20px; } }
+    @media (max-width: 920px){ .hero-kpis { margin-left: 0; width: 100%; justify-content: space-between; } }
+    @media (max-width: 680px){
+      .hero { padding: 22px 18px; }
+      .hero-kpis { gap: 12px; padding: 12px 12px; flex-wrap: wrap; }
+      .hero-kpi { min-width: calc(50% - 8px); }
+      .hero-kpi .hk-value { font-size: 34px; }
+      .hero-kpi .hk-sep { display: none; }
+      .hero h2 { font-size: 21px; }
+    }
 
     /* ============================================================
        Charts
        ============================================================ */
     .analytics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 22px; }
     @media (max-width: 980px){ .analytics { grid-template-columns: 1fr; } }
-    .chart-card { min-height: 260px; }
+    .chart-card { min-height: 260px; position: relative; overflow: hidden; }
     .chart-card .card-body { display: flex; flex-direction: column; }
-    .chart-donut { position: relative; width: 172px; height: 172px; margin: 6px auto 2px; }
+    .chart-card::before {
+      content: ''; position: absolute; inset: 0 auto auto 0; width: 100%; height: 4px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--purple) 48%, var(--blue) 100%);
+      opacity: .9;
+    }
+    .chart-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(0,0,0,.11), 0 4px 14px rgba(0,0,0,.05); }
+    .chart-donut { position: relative; width: 172px; height: 172px; margin: 6px auto 2px; filter: drop-shadow(0 10px 20px rgba(0,0,0,.08)); }
     .chart-donut svg { display: block; transform: rotate(-90deg); }
     .chart-donut svg circle { transition: stroke-dasharray .7s cubic-bezier(.4,0,.2,1); }
     .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
-    .dc-value { font-size: 30px; font-weight: 740; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+    .dc-value { font-size: 31px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
     .dc-label { font-size: 10.5px; color: var(--text-soft); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
-    .legend { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-    .legend li { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .legend { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .legend li {
+      display: flex; align-items: center; gap: 10px; font-size: 13px;
+      padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--surface-2) 75%, transparent);
+      border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+    }
     .lg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
     .lg-label { color: var(--text-muted); }
     .lg-val { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 650; }
@@ -439,6 +483,79 @@
     .bar-fill { height: 100%; border-radius: 6px; width: 0; transition: width .8s cubic-bezier(.4,0,.2,1); }
     .bar-val { width: 30px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; font-size: 13px; }
     .chart-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-soft); font-size: 13px; text-align: center; padding: 20px; }
+
+    /* Alerts analytics */
+    .alerts-analytics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 980px){ .alerts-analytics { grid-template-columns: 1fr; } }
+    .alerts-analytics .chart-card {
+      position: relative; overflow: hidden;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, #fff 4%), var(--surface));
+      border-color: color-mix(in srgb, var(--border) 88%, var(--accent) 12%);
+      box-shadow: 0 12px 34px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04);
+    }
+    .alerts-analytics .chart-card::before {
+      content: ''; position: absolute; inset: 0 auto auto 0; height: 3px; width: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 55%, var(--red)) 45%, var(--red) 100%);
+      opacity: .95;
+    }
+    .alerts-analytics .card-head { background: transparent; }
+    .alerts-analytics .card-head h3 { letter-spacing: -.01em; color: var(--red); }
+    :root[data-theme="dark"] .alerts-analytics .card-head h3 { color: #ff7b86; }
+    .alert-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 2px; }
+    .alert-bars-summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 8px 12px 4px; font-size: 12px; color: var(--text-soft);
+    }
+    .alert-bars-summary strong { color: var(--red); }
+    :root[data-theme="dark"] .alert-bars-summary strong { color: #ff7b86; }
+    .alert-columns {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px; align-items: end;
+      min-height: 210px; padding: 4px 6px 0;
+    }
+    @media (max-width: 720px) { .alert-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); min-height: 230px; } }
+    .alert-column {
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      gap: 8px; min-width: 0; padding: 8px 6px 6px;
+      border: 1px solid transparent; border-radius: 14px; background: transparent; color: inherit;
+      cursor: pointer; text-align: center; transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+    }
+    .alert-column:hover {
+      transform: translateY(-2px);
+      background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+      border-color: color-mix(in srgb, var(--border) 74%, var(--accent) 26%);
+      box-shadow: 0 8px 22px rgba(0,0,0,.05);
+    }
+    .alert-column.active {
+      background: var(--accent-soft);
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 15%, transparent);
+    }
+    .alert-column.active .bar-label,
+    .alert-column.active .bar-val { color: var(--text); font-weight: 700; }
+    .alert-column-track {
+      width: 100%; height: 140px; display: flex; align-items: flex-end; justify-content: center;
+      padding: 6px 0 0; border-radius: 16px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 58%, transparent), transparent 72%);
+      border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+    }
+    .alert-column-fill {
+      width: 72%; height: 0; border-radius: 14px 14px 6px 6px;
+      transition: height .85s cubic-bezier(.4,0,.2,1), filter .14s ease, opacity .14s ease;
+      filter: saturate(1.1) drop-shadow(0 8px 16px color-mix(in srgb, currentColor 20%, transparent));
+      opacity: .96;
+    }
+    .alert-column:hover .alert-column-fill { filter: saturate(1.25) drop-shadow(0 12px 20px color-mix(in srgb, currentColor 24%, transparent)); }
+    .alert-column .bar-label {
+      width: 100%; font-size: 12px; line-height: 1.2; color: var(--text-muted);
+      white-space: normal; min-height: 30px; display: flex; align-items: center; justify-content: center;
+    }
+    .alert-column .bar-val {
+      width: auto; text-align: center; font-size: 13px; font-weight: 700; color: var(--text);
+    }
+    .alert-bars-note { margin-top: 8px; font-size: 12px; color: var(--text-soft); text-align: center; }
 
     /* Responsive sidebar */
     .menu-toggle { display: none; }
@@ -523,7 +640,7 @@
 
     /* --- Spinner --- */
     .spinner-wrap { display:flex; align-items:center; justify-content:center; flex:1; min-height:175px; flex-direction:column; gap:14px; }
-    .spinner-wrap-sm { display:flex; align-items:center; justify-content:center; padding:32px; }
+    .spinner-wrap-sm { display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; padding:32px; }
     .spinner {
       width:44px; height:44px; border-radius:50%;
       border:3.5px solid var(--border);
@@ -531,6 +648,7 @@
       animation: spin .75s linear infinite;
       filter: drop-shadow(0 0 6px color-mix(in srgb,var(--accent) 35%,transparent));
     }
+    .spinner.red     { border-top-color:var(--red);     filter:drop-shadow(0 0 6px color-mix(in srgb,var(--red)     35%,transparent)); }
     .spinner.blue   { border-top-color:var(--blue);   filter:drop-shadow(0 0 6px color-mix(in srgb,var(--blue)   35%,transparent)); }
     .spinner.green  { border-top-color:var(--green);  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--green)  35%,transparent)); }
     .spinner.purple { border-top-color:var(--purple); filter:drop-shadow(0 0 6px color-mix(in srgb,var(--purple) 35%,transparent)); }
@@ -997,7 +1115,7 @@
           <div class="hero-text">
             <div class="hero-eyebrow">Transaction Monitoring</div>
             <h2>${esc(greeting)}, ${esc(CFG.operator)}</h2>
-            <p>Live view of alerts, transaction flow and rule coverage across the monitored estate.</p>
+            <p>Live view of alerts, transaction flow and rule coverage across the monitored estate — designed for faster triage and cleaner visibility.</p>
           </div>
           <div class="hero-kpis">
             <div class="hero-kpi"><div class="hk-value" id="kpiOpen">—</div><div class="hk-label">Open alerts</div></div>
@@ -1464,8 +1582,44 @@
     // ============================================================
     // VIEW: Alerts
     // ============================================================
+    const ALERT_STATUSES = ['OPEN', 'ACKNOWLEDGED', 'INVESTIGATING', 'CLOSED', 'DISMISSED'];
+    const ALERT_SEVERITIES = ['HIGH', 'MEDIUM', 'LOW'];
     const RESOLVED_ALERT_STATES = ['CLOSED', 'DISMISSED'];
     const alertState = { status: '', severity: '', activeOnly: false, q: '' };
+
+    function toneVar(tone) {
+      return ({ red: 'var(--red)', amber: 'var(--amber)', green: 'var(--green)', blue: 'var(--blue)', purple: 'var(--purple)', gray: 'var(--gray)' })[tone] || 'var(--gray)';
+    }
+    function spinnerInline(label, toneClass) {
+      return `<div class="spinner-wrap-sm"><div class="spinner sm ${toneClass || ''}"></div><span class="spinner-label">${esc(label || 'Loading…')}</span></div>`;
+    }
+    function computeAlertDistributions(list) {
+      const byStatus = Object.fromEntries(ALERT_STATUSES.map(s => [s, 0]));
+      const bySeverity = Object.fromEntries(ALERT_SEVERITIES.map(s => [s, 0]));
+      (list || []).forEach(a => {
+        if (byStatus[a.status] != null) byStatus[a.status] += 1;
+        if (bySeverity[a.severity] != null) bySeverity[a.severity] += 1;
+      });
+      return { byStatus, bySeverity, total: (list || []).length };
+    }
+    function renderAlertBars(items, kind, activeValue, total, allLabel) {
+      const max = Math.max(1, ...items.map(i => i.value), total || 0);
+      const rows = [{ key: '', label: allLabel, value: total || 0, color: 'var(--gray)' }, ...items];
+      return `<div class="alert-bars">
+        <div class="alert-bars-summary"><span>Distribution</span><strong>${Number(total || 0).toLocaleString()} alerts</strong></div>
+        <div class="alert-columns">${rows.map(r => `
+          <button class="alert-column ${String(activeValue || '') === String(r.key || '') ? 'active' : ''}" data-alert-filter-kind="${kind}" data-alert-filter-value="${esc(r.key)}" aria-label="Filter by ${esc(r.label)}">
+            <span class="alert-column-track"><span class="alert-column-fill" data-h="${(r.value / max * 100).toFixed(1)}" style="height:${(r.value / max * 100).toFixed(1)}%;background:linear-gradient(180deg, color-mix(in srgb, ${r.color} 80%, #fff), ${r.color});"></span></span>
+            <span class="bar-val num">${Number(r.value).toLocaleString()}</span>
+            <span class="bar-label">${esc(r.label)}</span>
+          </button>`).join('')}</div>
+      </div>`;
+    }
+
+    function animateAlertBars(root) {
+      requestAnimationFrame(() => root.querySelectorAll('.alert-column-fill').forEach(b => { b.style.height = b.dataset.h + '%'; }));
+    }
+
     async function viewAlerts(view) {
       view.innerHTML = `
         <div class="card mb-16"><div class="card-body">
@@ -1478,6 +1632,16 @@
             <button class="btn btn-sm btn-ghost" id="alertRefresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh</button>
           </div>
         </div></div>
+        <div class="alerts-analytics">
+          <div class="card chart-card">
+            <div class="card-head"><h3>Alerts by status</h3></div>
+            <div class="card-body" id="alertStatusBars">${spinnerInline('Loading status distribution…', 'blue')}</div>
+          </div>
+          <div class="card chart-card">
+            <div class="card-head"><h3>Alerts by risk severity</h3></div>
+            <div class="card-body" id="alertSeverityBars">${spinnerInline('Loading severity distribution…', 'purple')}</div>
+          </div>
+        </div>
         <div class="card">
           <div class="table-wrap"><table>
             <thead><tr><th>Severity</th><th>Rule</th><th>Message</th><th>Status</th><th>Raised</th><th></th></tr></thead>
@@ -1511,19 +1675,78 @@
     }
     async function loadAlerts(view) {
       const body = $('#alertBody', view);
+      const statusBars = $('#alertStatusBars', view);
+      const severityBars = $('#alertSeverityBars', view);
+      const statusSelect = $('#aStatus', view);
+      const severitySelect = $('#aSeverity', view);
+      const activeWrap = $('#aActiveWrap', view);
+      const activeCheckbox = $('#aActive', view);
       body.innerHTML = skeletonRows(6, 6);
+      if (statusBars) statusBars.innerHTML = spinnerInline('Loading status distribution…', 'blue');
+      if (severityBars) severityBars.innerHTML = spinnerInline('Loading severity distribution…', 'purple');
       try {
         const activeOnly = RESOLVED_ALERT_STATES.includes(alertState.status) ? false : alertState.activeOnly;
-        let list = await api('/alerts' + qs({ status: alertState.status, severity: alertState.severity, activeOnly: activeOnly || undefined }));
+        let list = await api('/alerts' + qs({ activeOnly: activeOnly || undefined }));
         if (!Array.isArray(list)) list = [];
-        if (alertState.q) list = list.filter(a => (a.ruleName || '').toLowerCase().includes(alertState.q) || (a.message || '').toLowerCase().includes(alertState.q));
-        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         updateAlertBadge(list);
-        if (!list.length) {
+
+        let searchList = list;
+        if (alertState.q) {
+          searchList = list.filter(a => (a.ruleName || '').toLowerCase().includes(alertState.q) || (a.message || '').toLowerCase().includes(alertState.q));
+        }
+
+        const dist = computeAlertDistributions(searchList);
+        if (statusBars) {
+          const statusItems = ALERT_STATUSES.map(s => ({
+            key: s,
+            label: titleCase(s),
+            value: dist.byStatus[s] || 0,
+            color: toneVar(ALERT_STATUS_TONE[s]),
+          }));
+          statusBars.innerHTML = renderAlertBars(statusItems, 'status', alertState.status, dist.total, 'All statuses');
+          statusBars.insertAdjacentHTML('beforeend', '<div class="alert-bars-note">Click a bar to filter the table by status.</div>');
+          animateAlertBars(statusBars);
+        }
+        if (severityBars) {
+          const sevItems = ALERT_SEVERITIES.map(s => ({
+            key: s,
+            label: titleCase(s),
+            value: dist.bySeverity[s] || 0,
+            color: toneVar(SEVERITY_TONE[s]),
+          }));
+          severityBars.innerHTML = renderAlertBars(sevItems, 'severity', alertState.severity, dist.total, 'All severity');
+          severityBars.insertAdjacentHTML('beforeend', '<div class="alert-bars-note">Click a bar to filter the table by severity.</div>');
+          animateAlertBars(severityBars);
+        }
+
+        view.querySelectorAll('[data-alert-filter-kind]').forEach(btn => {
+          btn.onclick = () => {
+            const kind = btn.dataset.alertFilterKind;
+            const value = btn.dataset.alertFilterValue || '';
+            if (kind === 'status') {
+              alertState.status = alertState.status === value ? '' : value;
+              statusSelect.value = alertState.status;
+              const resolved = RESOLVED_ALERT_STATES.includes(alertState.status);
+              activeWrap.style.display = resolved ? 'none' : 'flex';
+              if (resolved) { activeCheckbox.checked = false; alertState.activeOnly = false; }
+            } else if (kind === 'severity') {
+              alertState.severity = alertState.severity === value ? '' : value;
+              severitySelect.value = alertState.severity;
+            }
+            loadAlerts(view);
+          };
+        });
+
+        const filtered = searchList
+          .filter(a => !alertState.status || a.status === alertState.status)
+          .filter(a => !alertState.severity || a.severity === alertState.severity)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        if (!filtered.length) {
           body.innerHTML = `<tr><td colspan="6">${emptyState('No alerts', 'No alerts match the current filters.', '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>')}</td></tr>`;
           return;
         }
-        body.innerHTML = list.map(a => `
+        body.innerHTML = filtered.map(a => `
           <tr class="clickable" data-alert="${a.id}">
             <td>${sevBadge(a.severity)}</td>
             <td><div style="font-weight:550">${esc(a.ruleName)}</div><div class="t-soft" style="font-size:12px">${esc(RULE_TYPE_LABEL[a.ruleType] || a.ruleType)}</div></td>
