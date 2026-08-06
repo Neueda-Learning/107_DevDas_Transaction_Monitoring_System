@@ -47,8 +47,8 @@ class TransactionControllerIntegrationTest {
     void shouldCreateAndFetchTransaction() throws Exception {
         String payload = """
                 {
-                  "accountId": "ACC-001",
-                  "payeeId": "PAYEE-001",
+                  "accountId": "ACC-1001",
+                  "payeeId": "PAY-201",
                   "amount": 1500.25,
                   "currency": "USD",
                   "type": "DEBIT",
@@ -63,7 +63,7 @@ class TransactionControllerIntegrationTest {
                         .content(payload))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.accountId").value("ACC-001"))
+                .andExpect(jsonPath("$.accountId").value("ACC-1001"))
                 .andReturn();
 
         String transactionId = extractTransactionId(result.getResponse().getContentAsString());
@@ -71,7 +71,7 @@ class TransactionControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/transactions/{id}", transactionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(transactionId))
-                .andExpect(jsonPath("$.payeeId").value("PAYEE-001"));
+                .andExpect(jsonPath("$.payeeId").value("PAY-201"));
     }
 
     @Test
@@ -79,7 +79,7 @@ class TransactionControllerIntegrationTest {
         String payload = """
                 {
                   "accountId": "",
-                  "payeeId": "PAYEE-001",
+                  "payeeId": "PAY-201",
                   "amount": -20,
                   "currency": "US",
                   "type": "DEBIT",
@@ -99,8 +99,8 @@ class TransactionControllerIntegrationTest {
     void shouldFilterTransactionsByAccountId() throws Exception {
         String payload = """
                 {
-                  "accountId": "ACC-FILTER",
-                  "payeeId": "PAYEE-XYZ",
+                  "accountId": "ACC-2001",
+                  "payeeId": "PAY-202",
                   "amount": 320.00,
                   "currency": "USD",
                   "type": "CREDIT",
@@ -116,19 +116,19 @@ class TransactionControllerIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/transactions")
-                        .param("accountId", "ACC-FILTER")
+                        .param("accountId", "ACC-2001")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].accountId").value("ACC-FILTER"));
+                .andExpect(jsonPath("$.content[0].accountId").value("ACC-2001"));
     }
 
     @Test
     void shouldApproveAndRejectPendingTransaction() throws Exception {
         String pendingPayload = """
                 {
-                  "accountId": "ACC-PENDING",
-                  "payeeId": "PAYEE-PENDING",
+                  "accountId": "ACC-3001",
+                  "payeeId": "PAY-203",
                   "amount": 80.00,
                   "currency": "USD",
                   "type": "DEBIT",
@@ -161,7 +161,7 @@ class TransactionControllerIntegrationTest {
 
         MvcResult createRejectResult = mockMvc.perform(post("/api/v1/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(pendingPayload.replace("ACC-PENDING", "ACC-PENDING-2")))
+                        .content(pendingPayload.replace("ACC-3001", "ACC-3002")))
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -185,8 +185,8 @@ class TransactionControllerIntegrationTest {
     void shouldRequestApproveAndRejectRollbackFlow() throws Exception {
         String payload = """
                 {
-                  "accountId": "ACC-ROLLBACK",
-                  "payeeId": "PAYEE-ROLLBACK",
+                  "accountId": "ACC-4001",
+                  "payeeId": "PAY-204",
                   "amount": 450.00,
                   "currency": "USD",
                   "type": "DEBIT",
@@ -246,7 +246,7 @@ class TransactionControllerIntegrationTest {
 
         MvcResult createSecond = mockMvc.perform(post("/api/v1/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload.replace("ACC-ROLLBACK", "ACC-ROLLBACK-2")))
+                        .content(payload.replace("ACC-4001", "ACC-4002")))
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -294,8 +294,8 @@ class TransactionControllerIntegrationTest {
     void shouldReturnValidationErrorForInvalidDecisionPayload() throws Exception {
         String payload = """
                 {
-                  "accountId": "ACC-VALIDATION",
-                  "payeeId": "PAYEE-VALIDATION",
+                  "accountId": "ACC-5001",
+                  "payeeId": "PAY-205",
                   "amount": 50.00,
                   "currency": "USD",
                   "type": "DEBIT",
