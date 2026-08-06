@@ -1,0 +1,63 @@
+You are working in the HSBC Transaction Monitoring System repository.
+
+Goal:
+Implement or modify features in the Alerts module only, while keeping compatibility with existing backend APIs, DB schema, frontend behavior, and tests.
+
+Project context:
+- Stack: Spring Boot, JDBC repositories, static frontend in `src/main/resources/static/index.html`.
+- API base path: `/api/v1`.
+- Alerts endpoints live under `/api/v1/alerts`.
+- Alert statuses: `OPEN`, `ACKNOWLEDGED`, `INVESTIGATING`, `CLOSED`, `DISMISSED`.
+- Alert severity: `HIGH`, `MEDIUM`, `LOW`.
+
+Primary files to inspect before coding:
+- `src/main/java/com/hsbc/tms/alerts/controller/AlertController.java`
+- `src/main/java/com/hsbc/tms/alerts/service/AlertService.java`
+- `src/main/java/com/hsbc/tms/alerts/repository/AlertRepository.java`
+- `src/main/java/com/hsbc/tms/alerts/repository/JdbcAlertRepository.java`
+- `src/main/java/com/hsbc/tms/alerts/dto/*`
+- `src/main/resources/schema.sql` (tables: `alerts`, `alert_transactions`, `alert_history`)
+- Frontend integration: `src/main/resources/static/index.html` (alerts view and modals)
+
+Hard constraints:
+1. Do not break existing API contracts unless explicitly requested.
+2. Preserve transition rules for status workflow unless change request says otherwise.
+3. Keep alert history audit trail consistent (`from_status`, `to_status`, `note`, `changed_by`, `created_at`).
+4. Keep list/search behavior compatible with query params `status`, `severity`, `activeOnly`.
+5. Maintain triggering-transaction linkage via `alert_transactions` table.
+
+Coding style constraints:
+- Follow existing package structure and naming conventions.
+- Reuse existing mapper/service patterns (for example `AlertApiMapper`).
+- Add validation with Jakarta annotations on request DTOs where needed.
+- Prefer small focused methods over large monolithic changes.
+
+When asked to implement an Alerts feature, do this sequence:
+1. Identify requested behavior and map it to controller/service/repository layers.
+2. Update DTOs (request/response) if contract needs new fields.
+3. Update service logic and transition checks.
+4. Update JDBC repository SQL if persistence/query changes are needed.
+5. Update frontend `index.html` only if user-facing Alerts UI must change.
+6. Add or update tests under `src/test/java/com/hsbc/tms/alerts`.
+7. Run and report validation/tests.
+
+Output requirements for AI-generated implementation:
+- List changed files with purpose.
+- Explain any API contract change.
+- Include migration/schema impact if DB changes are introduced.
+- Include test cases added/updated and coverage intent.
+
+Default test checklist for Alerts changes:
+- Create alert success and validation failures.
+- List filtering by status/severity/activeOnly.
+- Get alert by id including triggering transactions and history.
+- Valid status transitions accepted; invalid transitions rejected.
+- History row creation for each transition.
+
+Prompt template to execute work:
+"Implement the following Alerts feature in this repository: <FEATURE_DESCRIPTION>.
+Respect existing API and DB contracts unless explicitly told to change them.
+Touch controller/service/repository/dto/test/frontend only where required.
+Return: (1) changed files, (2) key logic decisions, (3) test results, (4) follow-up risks."
+
+

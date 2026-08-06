@@ -1,0 +1,41 @@
+Use the same prompt guidance as `src/prompt/transaction`.
+
+You are working in the HSBC Transaction Monitoring System repository.
+
+Goal:
+Implement or modify the Transactions module, including create/search/detail, pending approval workflow, rollback workflow, and transaction-related UI behavior.
+
+Project context:
+- Transactions APIs are under `/api/v1/transactions`.
+- Uses paged search response shape (`content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`).
+- Status lifecycle includes:
+  `COMPLETED`, `PENDING`, `FAILED`, `PENDING_APPROVAL`, `REJECTED`,
+  `ROLLBACK_REQUESTED`, `ROLLBACK_REJECTED`, `REFUNDED`.
+- Transaction creation triggers rule engine evaluation and may produce alerts.
+
+Primary files to inspect before coding:
+- `src/main/java/com/hsbc/tms/transaction/controller/TransactionController.java`
+- `src/main/java/com/hsbc/tms/transaction/service/TransactionService.java`
+- `src/main/java/com/hsbc/tms/transaction/service/TransactionServiceImpl.java`
+- `src/main/java/com/hsbc/tms/transaction/repository/*`
+- `src/main/java/com/hsbc/tms/transaction/dto/*`
+- `src/main/resources/schema.sql` (`transactions` table)
+- Frontend pages in `src/main/resources/static/index.html` for transactions and pending approvals.
+
+Hard constraints:
+1. Preserve workflow guards:
+   - Approve/Reject allowed only for `PENDING_APPROVAL`.
+   - Rollback request allowed only for `COMPLETED`.
+   - Rollback approve/reject allowed only for `ROLLBACK_REQUESTED`.
+2. Keep review/rollback audit metadata fields updated correctly.
+3. Preserve sort/filter validation behavior (`sortBy`, `sortDir`, amount/time ranges).
+4. Keep validation for input identifiers aligned with current rules:
+   - `accountId`: `ACC-` + exactly 4 digits.
+   - `payeeId`: `PAY-` + exactly 3 digits.
+5. Do not break pending approvals flow and linked alerts resolution behavior.
+
+Prompt template to execute work:
+"Implement this Transactions module change: <FEATURE_DESCRIPTION>.
+Preserve workflow guards and existing API contracts unless explicitly asked to change them.
+Return: (1) changed files, (2) business-rule summary, (3) tests added/updated, (4) regression risks."
+

@@ -1,0 +1,64 @@
+You are working in the HSBC Transaction Monitoring System repository.
+
+Goal:
+Implement or modify the Rules module, including rule CRUD/status/history/stats and (when requested) rule feature requests, without breaking existing transaction evaluation and alert generation behavior.
+
+Project context:
+- Rules APIs are under `/api/v1/rules`.
+- Rule types: `AMOUNT_THRESHOLD`, `VELOCITY`, `NEW_PAYEE`, `DAILY_LIMIT`.
+- Severity values: `HIGH`, `MEDIUM`, `LOW`.
+- Rules affect transaction evaluation and alert creation.
+
+Primary files to inspect before coding:
+- `src/main/java/com/hsbc/tms/rules/controller/RuleController.java`
+- `src/main/java/com/hsbc/tms/rules/service/*`
+- `src/main/java/com/hsbc/tms/rules/repository/*`
+- `src/main/java/com/hsbc/tms/rules/dto/*`
+- `src/main/resources/schema.sql` (tables: `monitoring_rules`, `rule_audit_history`, `rule_execution_history`, `rule_feature_requests`)
+- Frontend rules page in `src/main/resources/static/index.html`
+
+Hard constraints:
+1. Enforce type-specific threshold rules:
+   - `AMOUNT_THRESHOLD` and `DAILY_LIMIT` require `amountThreshold`.
+   - `VELOCITY` requires `transactionCountThreshold` and `timeWindowMinutes`.
+   - `NEW_PAYEE` should not require thresholds.
+2. Preserve audit history for create/update/status/delete actions.
+3. Keep stats response shape stable unless change is explicitly requested.
+4. Keep compatibility with rule engine behavior used by transaction flow.
+5. Avoid destructive DB changes without explicit requirement.
+
+Coding style constraints:
+- Keep validation in DTOs and business validation in service layer.
+- Use existing response models and mappers.
+- Keep repository SQL readable and parameterized.
+- Keep soft-delete semantics where currently used.
+
+When asked to implement a Rules feature, do this sequence:
+1. Map feature to controller/service/repository/dto updates.
+2. Add/adjust DTO validation for rule type constraints.
+3. Update service logic including audit entries.
+4. Update repository queries/commands and stats calculations if needed.
+5. Update frontend rules view only when user-facing behavior changes.
+6. Add/update tests under `src/test/java/com/hsbc/tms/rules`.
+7. Run tests and report outcomes.
+
+Output requirements for AI-generated implementation:
+- Changed files and why each change is needed.
+- Validation rules enforced.
+- Audit/history implications.
+- Backward compatibility notes.
+
+Default test checklist for Rules changes:
+- Create/update rules for each type with valid and invalid payloads.
+- Enable/disable status transitions.
+- Soft delete behavior.
+- Rule history correctness.
+- Rule stats correctness by type/severity/active state.
+- Integration impact on transaction evaluation if applicable.
+
+Prompt template to execute work:
+"Implement the following Rules module enhancement: <FEATURE_DESCRIPTION>.
+Preserve rule-engine compatibility and existing API contracts.
+Update tests accordingly and summarize risk/compatibility notes."
+
+

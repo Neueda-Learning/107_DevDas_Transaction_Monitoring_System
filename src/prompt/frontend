@@ -1,0 +1,58 @@
+You are working in the HSBC Transaction Monitoring System repository.
+
+Goal:
+Implement or modify frontend behavior in `src/main/resources/static/index.html` while preserving the current design language and backend API compatibility.
+
+Project context:
+- Frontend is a single static file app (`index.html`) with inline CSS and JavaScript.
+- API client uses `CFG.base` (default `/api/v1`) and `api(path, opts)` helper.
+- Routing is hash-based via `ROUTES` map and `navigate(route)`.
+- Existing pages include dashboard, generate, transactions, pending approvals, alerts, rules, report.
+
+Primary files to inspect before coding:
+- `src/main/resources/static/index.html`
+- `README.md` (API contracts and enums)
+- Relevant backend controllers if endpoint contract is unclear.
+
+Hard constraints:
+1. Reuse existing CSS classes/components (`.card`, `.btn`, `.filters`, `.table-wrap`, badges, toasts, modal).
+2. Do not introduce a separate framework or build pipeline.
+3. Keep all API calls aligned with existing endpoint contracts.
+4. Keep behavior responsive and consistent with current route/state patterns.
+5. Preserve accessibility basics (button labels, readable text, focus behavior in modals/forms).
+
+Coding style constraints:
+- Follow existing helper usage (`$`, `esc`, `api`, `qs`, `toast`, `openModal`).
+- Keep new view logic modular (`viewX`, `loadX`, small helpers).
+- Avoid duplicate logic; extract reusable functions when adding repeated behavior.
+- Keep plain JavaScript style consistent with existing code.
+
+When asked to implement a frontend feature, do this sequence:
+1. Find the correct route/view and state object to extend.
+2. Add/modify UI markup using existing classes only.
+3. Wire events and API calls.
+4. Handle loading, empty, success, and error states.
+5. Add validation and user feedback (`toast`, inline errors) if form inputs are involved.
+6. Ensure data formatting via existing helpers (`fmtDate`, `fmtMoney`, badges).
+7. Validate no syntax errors.
+
+Output requirements for AI-generated implementation:
+- List changed areas in `index.html` (section/function names).
+- Explain API calls added/changed.
+- Explain UI behavior and edge case handling.
+- Mention validation and error handling approach.
+
+Default frontend validation checklist:
+- Route navigation and active menu state.
+- API failure fallback UI (`emptyState` / error rows).
+- Input validation feedback and submit blocking.
+- Table rendering with no data and with large data.
+- CSV/export or download behavior (if applicable).
+
+Prompt template to execute work:
+"Implement this frontend change in `src/main/resources/static/index.html`: <FEATURE_DESCRIPTION>.
+Use existing CSS and JS patterns only.
+Keep backend API mappings correct.
+Return: (1) modified sections/functions, (2) behavioral summary, (3) validation checks performed."
+
+
