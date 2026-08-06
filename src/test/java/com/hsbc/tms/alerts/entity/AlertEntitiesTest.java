@@ -61,4 +61,3 @@ class AlertEntitiesTest {
         assertThat(history.getCreatedAt()).isEqualTo(now);
     }
 }
-

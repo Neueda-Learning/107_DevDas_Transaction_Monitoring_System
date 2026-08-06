@@ -64,4 +64,3 @@ class JdbcAlertHistoryRepositoryTest {
         assertThat(rows.get(1).getChangedBy()).isEqualTo("analyst-2");
     }
 }
-

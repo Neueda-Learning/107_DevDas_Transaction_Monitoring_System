@@ -4,6 +4,7 @@ import com.hsbc.tms.transaction.model.TransactionStatus;
 import com.hsbc.tms.transaction.model.TransactionType;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public class TransactionResponse {
@@ -36,6 +37,8 @@ public class TransactionResponse {
     private Instant refundedAt;
     private UUID refundTransactionId;
     private UUID refundedForTransactionId;
+
+    private List<AlertReferenceResponse> triggeredAlerts;
 
     public UUID getId() {
         return id;
@@ -235,6 +238,14 @@ public class TransactionResponse {
 
     public void setRefundedForTransactionId(UUID refundedForTransactionId) {
         this.refundedForTransactionId = refundedForTransactionId;
+    }
+
+    public List<AlertReferenceResponse> getTriggeredAlerts() {
+        return triggeredAlerts;
+    }
+
+    public void setTriggeredAlerts(List<AlertReferenceResponse> triggeredAlerts) {
+        this.triggeredAlerts = triggeredAlerts;
     }
 }
 
