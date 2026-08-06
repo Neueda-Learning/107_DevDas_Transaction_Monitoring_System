@@ -34,7 +34,6 @@ public class VelocityRuleEvaluator implements RuleEvaluator {
 
         // Only count COMPLETED transactions for velocity rule evaluation
         long count = metricsRepository.countByAccountIdAndTransactionTimeBetween(transaction.getAccountId(), fromTime, toTime);
-        System.out.println("VelocityRuleEvaluator: count=" + count + ", threshold=" + rule.getTransactionCountThreshold() + ", windowMinutes=" + rule.getTimeWindowMinutes());
         if (count > rule.getTransactionCountThreshold()) {
             List<Transaction> related = metricsRepository.findByAccountIdAndTransactionTimeBetweenAndStatus(transaction.getAccountId(), fromTime, toTime, TransactionStatus.COMPLETED);
             String reason = "Velocity threshold exceeded for account " + transaction.getAccountId()
