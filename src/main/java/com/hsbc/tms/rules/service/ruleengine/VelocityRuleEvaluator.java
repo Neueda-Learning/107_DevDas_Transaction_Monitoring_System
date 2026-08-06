@@ -4,6 +4,7 @@ import com.hsbc.tms.rules.entity.MonitoringRule;
 import com.hsbc.tms.rules.model.RuleType;
 import com.hsbc.tms.rules.repository.RuleTransactionMetricsRepository;
 import com.hsbc.tms.transaction.model.Transaction;
+import com.hsbc.tms.transaction.model.TransactionStatus;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -31,9 +32,11 @@ public class VelocityRuleEvaluator implements RuleEvaluator {
         Instant toTime = transaction.getTransactionTime();
         Instant fromTime = toTime.minusSeconds(rule.getTimeWindowMinutes() * 60L);
 
+        // Only count COMPLETED transactions for velocity rule evaluation
         long count = metricsRepository.countByAccountIdAndTransactionTimeBetween(transaction.getAccountId(), fromTime, toTime);
+        System.out.println("VelocityRuleEvaluator: count=" + count + ", threshold=" + rule.getTransactionCountThreshold() + ", windowMinutes=" + rule.getTimeWindowMinutes());
         if (count > rule.getTransactionCountThreshold()) {
-            List<Transaction> related = metricsRepository.findByAccountIdAndTransactionTimeBetween(transaction.getAccountId(), fromTime, toTime);
+            List<Transaction> related = metricsRepository.findByAccountIdAndTransactionTimeBetweenAndStatus(transaction.getAccountId(), fromTime, toTime, TransactionStatus.COMPLETED);
             String reason = "Velocity threshold exceeded for account " + transaction.getAccountId()
                     + ": count=" + count
                     + ", threshold=" + rule.getTransactionCountThreshold()
