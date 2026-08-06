@@ -23,6 +23,8 @@ public interface AlertRepository {
     List<UUID> findTriggeringTransactionIdsByAlertId(Long alertId);
 
     List<Alert> findActiveByTriggeringTransactionId(UUID transactionId, Set<AlertStatus> activeStatuses);
+
+    List<Alert> findByTriggeringTransactionId(UUID transactionId);
 }
 
 

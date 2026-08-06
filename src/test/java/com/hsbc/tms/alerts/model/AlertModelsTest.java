@@ -18,4 +18,3 @@ class AlertModelsTest {
         assertThat(AlertStatus.valueOf("OPEN")).isEqualTo(AlertStatus.OPEN);
     }
 }
-

@@ -1,10 +1,12 @@
 package com.hsbc.tms.transaction.service;
 
+import com.hsbc.tms.alerts.repository.AlertRepository;
 import com.hsbc.tms.alerts.service.AlertService;
 import com.hsbc.tms.common.dto.PagedResponse;
 import com.hsbc.tms.common.exception.BadRequestException;
 import com.hsbc.tms.common.exception.ResourceNotFoundException;
 import com.hsbc.tms.rules.service.RuleEngineService;
+import com.hsbc.tms.transaction.dto.AlertReferenceResponse;
 import com.hsbc.tms.transaction.dto.CreateTransactionRequest;
 import com.hsbc.tms.transaction.dto.TransactionDecisionRequest;
 import com.hsbc.tms.transaction.dto.TransactionFilterRequest;
@@ -33,11 +35,17 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final RuleEngineService ruleEngineService;
     private final AlertService alertService;
+    private final AlertRepository alertRepository;
 
-    public TransactionServiceImpl(TransactionRepository transactionRepository, RuleEngineService ruleEngineService, AlertService alertService) {
+    public TransactionServiceImpl(
+            TransactionRepository transactionRepository,
+            RuleEngineService ruleEngineService,
+            AlertService alertService,
+            AlertRepository alertRepository) {
         this.transactionRepository = transactionRepository;
         this.ruleEngineService = ruleEngineService;
         this.alertService = alertService;
+        this.alertRepository = alertRepository;
     }
 
     @Override
@@ -284,6 +292,14 @@ public class TransactionServiceImpl implements TransactionService {
         response.setRefundedAt(transaction.getRefundedAt());
         response.setRefundTransactionId(transaction.getRefundTransactionId());
         response.setRefundedForTransactionId(transaction.getRefundedForTransactionId());
+        
+        // Fetch triggered alerts
+        var alerts = alertRepository.findByTriggeringTransactionId(transaction.getId());
+        var alertReferences = alerts.stream()
+                .map(a -> new AlertReferenceResponse(a.getId(), a.getRuleName(), a.getRuleType(), a.getSeverity(), a.getMessage()))
+                .toList();
+        response.setTriggeredAlerts(alertReferences);
+        
         return response;
     }
 }

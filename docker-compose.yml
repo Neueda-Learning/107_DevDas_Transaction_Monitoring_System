@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql-container
+    restart: always
+
+    environment:
+      - MYSQL_ROOT_PASSWORD=n3u3da!
+      - MYSQL_DATABASE=coworking
+
+    ports:
+      - "3306:3306"
+    
+    volumes:
+      - mysql-data:/var/lib/data
+
+    networks:
+      - springboot-network
+
+  springboot-app:
+    build: .
+    container_name: springboot-app
+
+    ports:
+      - "8081:8081"
+    
+    depends_on:
+      - mysql
+
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:mysql://mysql:3306/coworking
+      DB_USER: root
+      DB_PASS: n3u3da!
+
+    networks:
+      - springboot-network
+
+volumes:
+  mysql-data:
+
+networks:
+  springboot-network:
+    driver: bridge

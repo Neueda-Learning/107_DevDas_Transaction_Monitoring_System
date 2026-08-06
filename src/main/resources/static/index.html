@@ -648,7 +648,6 @@
       animation: spin .75s linear infinite;
       filter: drop-shadow(0 0 6px color-mix(in srgb,var(--accent) 35%,transparent));
     }
-    .spinner.red     { border-top-color:var(--red);     filter:drop-shadow(0 0 6px color-mix(in srgb,var(--red)     35%,transparent)); }
     .spinner.blue   { border-top-color:var(--blue);   filter:drop-shadow(0 0 6px color-mix(in srgb,var(--blue)   35%,transparent)); }
     .spinner.green  { border-top-color:var(--green);  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--green)  35%,transparent)); }
     .spinner.purple { border-top-color:var(--purple); filter:drop-shadow(0 0 6px color-mix(in srgb,var(--purple) 35%,transparent)); }
@@ -807,11 +806,15 @@
           <span>Alerts</span>
           <span class="nav-badge" id="navAlertBadge" style="display:none">0</span>
         </a>
-        <a class="nav-item" data-route="transactions">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-          <span>Transactions</span>
-        </a>
-        <a class="nav-item" data-route="rules">
+         <a class="nav-item" data-route="transactions">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+           <span>Transactions</span>
+         </a>
+         <a class="nav-item" data-route="pending-approvals">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11H3v2h6v-2zm0-4H3v2h6V7zm6 0v2h6V7h-6zm0 4v2h6v-2h-6zM9 3H3v2h6V3zm6 0v2h6V3h-6z"/><circle cx="5" cy="5" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+           <span>Pending Approvals</span>
+         </a>
+         <a class="nav-item" data-route="rules">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg>
           <span>Rules</span>
         </a>
@@ -1446,38 +1449,53 @@
     async function openTxnDetail(id) {
       const body = el('<div><div class="table-wrap"><table><tbody>' + skeletonRows(2, 5) + '</tbody></table></div></div>');
       const overlay = openModal({ title: 'Transaction', sub: 'Reference ' + shortId(id), body, wide: false, footer: document.createDocumentFragment() });
-      try {
-        const t = await api('/transactions/' + id);
-        const extra = [];
-        if (t.reviewedBy) extra.push(`<dt>Reviewed by</dt><dd>${esc(t.reviewedBy)} <span class="t-muted">· ${fmtDate(t.reviewedAt)}</span></dd>`);
-        if (t.reviewNote) extra.push(`<dt>Review note</dt><dd>${esc(t.reviewNote)}</dd>`);
-        if (t.rollbackReasonCode) extra.push(`<dt>Rollback reason</dt><dd>${esc(t.rollbackReasonCode)} — ${esc(t.rollbackReasonDetail || '')}</dd>`);
-        if (t.rollbackRequestedBy) extra.push(`<dt>Rollback requested by</dt><dd>${esc(t.rollbackRequestedBy)} <span class="t-muted">· ${fmtDate(t.rollbackRequestedAt)}</span></dd>`);
-        if (t.rollbackReviewedBy) extra.push(`<dt>Rollback reviewed by</dt><dd>${esc(t.rollbackReviewedBy)} <span class="t-muted">· ${fmtDate(t.rollbackReviewedAt)}</span></dd>`);
-        if (t.rollbackReviewNote) extra.push(`<dt>Rollback review note</dt><dd>${esc(t.rollbackReviewNote)}</dd>`);
-        if (t.refundTransactionId) extra.push(`<dt>Refund transaction</dt><dd class="mono clickable" data-txn="${t.refundTransactionId}">${shortId(t.refundTransactionId)}</dd>`);
-        if (t.refundedForTransactionId) extra.push(`<dt>Refund for</dt><dd class="mono clickable" data-txn="${t.refundedForTransactionId}">${shortId(t.refundedForTransactionId)}</dd>`);
+       try {
+         const t = await api('/transactions/' + id);
+         const extra = [];
+         if (t.triggeredAlerts && t.triggeredAlerts.length > 0) {
+           extra.push(`<dt>Triggered by</dt><dd>${t.triggeredAlerts.map(a => `<div class="flex items-center gap-8" style="margin-bottom:8px"><span class="badge b-${SEVERITY_TONE[a.severity] || 'gray'}">${esc(a.severity)}</span><div style="flex:1"><div style="font-weight:550;font-size:13px">${esc(a.ruleName)}</div><div class="t-muted" style="font-size:12px">${esc(RULE_TYPE_LABEL[a.ruleType] || a.ruleType)}</div><div class="t-soft" style="font-size:12px;margin-top:3px">${esc(a.message)}</div></div></div>`).join('')}</dd>`);
+         }
+         if (t.reviewedBy) extra.push(`<dt>Reviewed by</dt><dd>${esc(t.reviewedBy)} <span class="t-muted">· ${fmtDate(t.reviewedAt)}</span></dd>`);
+         if (t.reviewNote) extra.push(`<dt>Review note</dt><dd>${esc(t.reviewNote)}</dd>`);
+         if (t.rollbackReasonCode) extra.push(`<dt>Rollback reason</dt><dd>${esc(t.rollbackReasonCode)} — ${esc(t.rollbackReasonDetail || '')}</dd>`);
+         if (t.rollbackRequestedBy) extra.push(`<dt>Rollback requested by</dt><dd>${esc(t.rollbackRequestedBy)} <span class="t-muted">· ${fmtDate(t.rollbackRequestedAt)}</span></dd>`);
+         if (t.rollbackReviewedBy) extra.push(`<dt>Rollback reviewed by</dt><dd>${esc(t.rollbackReviewedBy)} <span class="t-muted">· ${fmtDate(t.rollbackReviewedAt)}</span></dd>`);
+         if (t.rollbackReviewNote) extra.push(`<dt>Rollback review note</dt><dd>${esc(t.rollbackReviewNote)}</dd>`);
+         if (t.refundTransactionId) extra.push(`<dt>Refund transaction</dt><dd class="mono clickable" data-txn="${t.refundTransactionId}">${shortId(t.refundTransactionId)}</dd>`);
+         if (t.refundedForTransactionId) extra.push(`<dt>Refund for</dt><dd class="mono clickable" data-txn="${t.refundedForTransactionId}">${shortId(t.refundedForTransactionId)}</dd>`);
 
-        body.innerHTML = `
-          <dl class="detail-list">
-            <dt>Transaction ID</dt><dd class="mono">${esc(t.id)}</dd>
-            <dt>Account ID</dt><dd class="mono">${esc(t.accountId)}</dd>
-            <dt>Payee ID</dt><dd class="mono">${esc(t.payeeId)}</dd>
-            <dt>Amount</dt><dd class="amount">${fmtMoney(t.amount, t.currency)}</dd>
-            <dt>Type</dt><dd>${typeBadge(t.type)}</dd>
-            <dt>Status</dt><dd>${txnStatusBadge(t.status)}</dd>
-            <dt>Transaction time</dt><dd>${fmtDate(t.transactionTime)}</dd>
-            <dt>Description</dt><dd>${t.description ? esc(t.description) : '<span class="t-soft">—</span>'}</dd>
-            <dt>Created</dt><dd class="t-muted">${fmtDate(t.createdAt)}</dd>
-            <dt>Updated</dt><dd class="t-muted">${fmtDate(t.updatedAt)}</dd>
-            ${extra.join('')}
-          </dl>`;
-        body.querySelectorAll('[data-txn]').forEach(dd => dd.onclick = () => openTxnDetail(dd.dataset.txn));
+         body.innerHTML = `
+           <dl class="detail-list">
+             <dt>Transaction ID</dt><dd class="mono">${esc(t.id)}</dd>
+             <dt>Account ID</dt><dd class="mono">${esc(t.accountId)}</dd>
+             <dt>Payee ID</dt><dd class="mono">${esc(t.payeeId)}</dd>
+             <dt>Amount</dt><dd class="amount">${fmtMoney(t.amount, t.currency)}</dd>
+             <dt>Type</dt><dd>${typeBadge(t.type)}</dd>
+             <dt>Status</dt><dd>${txnStatusBadge(t.status)}</dd>
+             <dt>Transaction time</dt><dd>${fmtDate(t.transactionTime)}</dd>
+             <dt>Description</dt><dd>${t.description ? esc(t.description) : '<span class="t-soft">—</span>'}</dd>
+             <dt>Created</dt><dd class="t-muted">${fmtDate(t.createdAt)}</dd>
+             <dt>Updated</dt><dd class="t-muted">${fmtDate(t.updatedAt)}</dd>
+             ${extra.join('')}
+           </dl>`;
 
-        const foot = overlay.querySelector('.modal-foot');
-        foot.innerHTML = '';
-        const cancel = el('<button class="btn btn-ghost">Close</button>'); cancel.onclick = closeModal; foot.append(cancel);
-        const onDone = () => { closeModal(); if (currentRoute === 'transactions') loadTxns($('#view')); else if (currentRoute === 'dashboard') viewDashboard($('#view')); };
+         // Make triggered alerts clickable
+         body.querySelectorAll('span.badge.b-red, span.badge.b-amber, span.badge.b-blue, span.badge.b-gray, span.badge.b-purple').forEach(badge => {
+           if (t.triggeredAlerts && t.triggeredAlerts.length > 0) {
+             const parent = badge.closest('dd');
+             if (parent && parent.textContent.includes('Triggered')) {
+               parent.style.cursor = 'pointer';
+               parent.onclick = (e) => { e.stopPropagation(); closeModal(); openAlertDetailsModal(t.triggeredAlerts); };
+             }
+           }
+         });
+
+         body.querySelectorAll('[data-txn]').forEach(dd => dd.onclick = () => openTxnDetail(dd.dataset.txn));
+
+         const foot = overlay.querySelector('.modal-foot');
+         foot.innerHTML = '';
+         const cancel = el('<button class="btn btn-ghost">Close</button>'); cancel.onclick = closeModal; foot.append(cancel);
+         const onDone = () => { closeModal(); if (currentRoute === 'transactions') loadTxns($('#view')); else if (currentRoute === 'pending-approvals') loadPendingApprovals($('#view')); else if (currentRoute === 'dashboard') viewDashboard($('#view')); };
         if (t.status === 'PENDING_APPROVAL') {
           const rej = el('<button class="btn btn-danger btn-sm">Reject</button>');
           rej.onclick = () => promptTxnDecision(t, 'reject', onDone);
@@ -1577,6 +1595,129 @@
           onDone();
         } catch (e) { toastError(e); busy(submitBtn, false); }
       }
+    }
+
+    // ============================================================
+    // VIEW: Pending Approvals
+    // ============================================================
+    const pendingApprovalsState = { page: 0, size: 20, sortBy: '', sortDir: '' };
+    async function viewPendingApprovals(view) {
+      const currentSort = pendingApprovalsState.sortBy && pendingApprovalsState.sortDir
+        ? `${pendingApprovalsState.sortBy}-${pendingApprovalsState.sortDir}`
+        : '';
+      view.innerHTML = `
+        <div class="card mb-16">
+          <div class="card-head">
+            <h3>Transactions Pending Approval</h3><div class="spacer"></div>
+            <div class="filters">
+              <div class="fg"><span class="lbl">Sort by</span><select class="select" id="paSortBy" style="width:auto;height:32px">
+                <option value="" disabled ${currentSort === '' ? 'selected' : ''}>Sort by time</option>
+                <option value="transactionTime-desc" ${currentSort === 'transactionTime-desc' ? 'selected' : ''}>Transaction Time (Latest)</option>
+                <option value="transactionTime-asc" ${currentSort === 'transactionTime-asc' ? 'selected' : ''}>Transaction Time (Earliest)</option>
+                <option value="alertTime-desc" ${currentSort === 'alertTime-desc' ? 'selected' : ''}>Alert Triggered (Latest)</option>
+                <option value="alertTime-asc" ${currentSort === 'alertTime-asc' ? 'selected' : ''}>Alert Triggered (Earliest)</option>
+              </select></div>
+              <button class="btn btn-primary btn-sm" id="paRefresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Account</th><th>Payee</th><th style="text-align:right">Amount</th><th>Triggered Rules</th><th>Time</th><th></th></tr></thead>
+            <tbody id="paBody">${skeletonRows(5, 6)}</tbody>
+          </table></div>
+          <div class="pager" id="paPager" style="display:none"></div>
+        </div>`;
+
+      $('#paSortBy', view).onchange = () => {
+        const sortValue = $('#paSortBy', view).value;
+        if (!sortValue) return;
+        const [sortBy, sortDir] = sortValue.split('-');
+        pendingApprovalsState.sortBy = sortBy;
+        pendingApprovalsState.sortDir = sortDir;
+        pendingApprovalsState.page = 0;
+        loadPendingApprovals(view);
+      };
+      $('#paRefresh', view).onclick = () => loadPendingApprovals(view);
+      loadPendingApprovals(view);
+    }
+    async function loadPendingApprovals(view) {
+      const body = $('#paBody', view); const pager = $('#paPager', view);
+      body.innerHTML = skeletonRows(5, 6); pager.style.display = 'none';
+      try {
+        const data = await api('/transactions' + qs({ status: 'PENDING_APPROVAL', page: pendingApprovalsState.page, size: pendingApprovalsState.size, sortBy: 'transactionTime', sortDir: 'desc' }));
+        if (!data.content.length) {
+          body.innerHTML = `<tr><td colspan="6">${emptyState('No pending approvals', 'All transactions have been reviewed.', '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>')}</td></tr>`;
+          return;
+        }
+
+        // Sort locally if needed
+        let sortedContent = [...data.content];
+        if (pendingApprovalsState.sortBy === 'alertTime') {
+          sortedContent.sort((a, b) => {
+            const aTime = a.triggeredAlerts && a.triggeredAlerts.length > 0
+              ? new Date(a.triggeredAlerts[0].createdAt || a.triggeredAlerts[0].updatedAt || 0).getTime()
+              : new Date(a.transactionTime).getTime();
+            const bTime = b.triggeredAlerts && b.triggeredAlerts.length > 0
+              ? new Date(b.triggeredAlerts[0].createdAt || b.triggeredAlerts[0].updatedAt || 0).getTime()
+              : new Date(b.transactionTime).getTime();
+            return pendingApprovalsState.sortDir === 'desc' ? bTime - aTime : aTime - bTime;
+          });
+        } else if (pendingApprovalsState.sortBy === 'transactionTime') {
+          sortedContent.sort((a, b) => {
+            const aTime = new Date(a.transactionTime).getTime();
+            const bTime = new Date(b.transactionTime).getTime();
+            return pendingApprovalsState.sortDir === 'desc' ? bTime - aTime : aTime - bTime;
+          });
+        }
+
+        body.innerHTML = sortedContent.map(t => `
+          <tr class="clickable" data-txn="${t.id}">
+            <td class="mono" style="font-weight:550">${esc(t.accountId)}</td>
+            <td class="mono t-muted">${esc(t.payeeId)}</td>
+            <td style="text-align:right" class="amount">${fmtMoney(t.amount, t.currency)}</td>
+            <td id="alerts-${t.id}" class="clickable" style="cursor:pointer">${renderTriggeredRules(t.triggeredAlerts)}</td>
+            <td class="t-muted nowrap">${fmtDateShort(t.transactionTime)}</td>
+            <td style="text-align:right"><span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></td>
+          </tr>`).join('');
+        // Alert column click handler
+        body.querySelectorAll('td[id^="alerts-"]').forEach(td => {
+          const txnId = td.id.replace('alerts-', '');
+          const t = sortedContent.find(x => x.id === txnId);
+          if (t && t.triggeredAlerts && t.triggeredAlerts.length > 0) {
+            td.onclick = (e) => { e.stopPropagation(); openAlertDetailsModal(t.triggeredAlerts); };
+          }
+        });
+        // Regular row click for full transaction details
+        body.querySelectorAll('[data-txn]').forEach(tr => {
+          tr.onclick = () => openTxnDetail(tr.dataset.txn);
+        });
+        renderPager(pager, data, (p) => { pendingApprovalsState.page = p; loadPendingApprovals(view); });
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="6">${emptyState('Could not load pending approvals', e.message)}</td></tr>`;
+      }
+    }
+    function openAlertDetailsModal(alerts) {
+      const alertList = alerts.map(a => `
+        <div style="margin-bottom:20px;padding:16px;background:var(--surface-2);border-radius:var(--radius-sm);border-left:4px solid var(--${SEVERITY_TONE[a.severity] || 'gray'})">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            ${sevBadge(a.severity)}
+            <span class="badge b-gray no-dot" style="font-size:11px">${esc(RULE_TYPE_LABEL[a.ruleType] || a.ruleType)}</span>
+          </div>
+          <div style="font-weight:600;font-size:16px;margin-bottom:8px;color:var(--text)">${esc(a.ruleName)}</div>
+          <div style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:8px">${esc(a.message)}</div>
+          <div style="font-size:12px;color:var(--text-soft)">Rule: ${esc(RULE_TYPE_LABEL[a.ruleType] || a.ruleType)}</div>
+        </div>
+      `).join('');
+
+      const body = el(`<div style="padding:8px 0">${alertList}</div>`);
+      openModal({ title: 'Triggered Alerts', sub: `${alerts.length} alert${alerts.length !== 1 ? 's' : ''} triggered this transaction`, body, wide: false });
+    }
+    function renderTriggeredRules(alerts) {
+      if (!alerts || !alerts.length) return '<span class="t-soft">—</span>';
+      const rules = alerts.slice(0, 2).map(a => `<span class="badge b-${SEVERITY_TONE[a.severity] || 'gray'} no-dot" title="${esc(a.message)}">${esc(a.ruleName)}</span>`).join('');
+      const more = alerts.length > 2 ? `<span class="badge b-gray no-dot">+${alerts.length - 2} more</span>` : '';
+      return rules + more;
     }
 
     // ============================================================
@@ -2300,6 +2441,7 @@
       dashboard: { title: 'Dashboard', render: viewDashboard },
       generate: { title: 'Generate', render: viewGenerate },
       transactions: { title: 'Transactions', render: viewTransactions },
+      'pending-approvals': { title: 'Pending Approvals', render: viewPendingApprovals },
       alerts: { title: 'Alerts', render: viewAlerts },
       rules: { title: 'Rules', render: viewRules },
     };

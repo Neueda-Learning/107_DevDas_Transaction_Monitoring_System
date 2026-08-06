@@ -112,4 +112,3 @@ class AlertApiMapperTest {
         assertThat(response.getUpdatedAt()).isEqualTo(now.plusSeconds(5));
     }
 }
-
