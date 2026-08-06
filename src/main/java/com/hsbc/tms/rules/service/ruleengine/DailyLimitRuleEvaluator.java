@@ -39,6 +39,9 @@ public class DailyLimitRuleEvaluator implements RuleEvaluator {
         // Only sum COMPLETED transactions for daily limit rule evaluation
         BigDecimal total = metricsRepository.sumAmountByAccountAndTransactionTimeRangeAndStatus(
                 transaction.getAccountId(), startOfDay, endOfDay, TransactionStatus.COMPLETED);
+        if (total == null) {
+            total = BigDecimal.ZERO;
+        }
 
         if (total.compareTo(rule.getAmountThreshold()) > 0) {
             String reason = "Daily limit exceeded for account " + transaction.getAccountId()

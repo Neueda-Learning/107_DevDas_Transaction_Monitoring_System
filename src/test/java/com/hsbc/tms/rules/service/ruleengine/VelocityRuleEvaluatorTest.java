@@ -10,6 +10,7 @@ import com.hsbc.tms.rules.entity.MonitoringRule;
 import com.hsbc.tms.rules.model.RuleType;
 import com.hsbc.tms.rules.repository.RuleTransactionMetricsRepository;
 import com.hsbc.tms.transaction.model.Transaction;
+import com.hsbc.tms.transaction.model.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -61,7 +62,8 @@ class VelocityRuleEvaluatorTest {
         Transaction t2 = buildTransaction();
 
         when(metricsRepository.countByAccountIdAndTransactionTimeBetween(any(), any(), any())).thenReturn(6L);
-        when(metricsRepository.findByAccountIdAndTransactionTimeBetween(any(), any(), any())).thenReturn(List.of(t1, t2));
+        when(metricsRepository.findByAccountIdAndTransactionTimeBetweenAndStatus(any(), any(), any(), any(TransactionStatus.class)))
+                .thenReturn(List.of(t1, t2));
 
         RuleEvaluator.RuleEvaluationResult result = evaluator.evaluate(tx, rule);
 
@@ -83,7 +85,7 @@ class VelocityRuleEvaluatorTest {
 
         assertThat(result.triggered()).isFalse();
         assertThat(result.reason()).isEqualTo("Rule conditions not met for transaction");
-        verify(metricsRepository, never()).findByAccountIdAndTransactionTimeBetween(any(), any(), any());
+        verify(metricsRepository, never()).findByAccountIdAndTransactionTimeBetweenAndStatus(any(), any(), any(), any(TransactionStatus.class));
     }
 
     private Transaction buildTransaction() {

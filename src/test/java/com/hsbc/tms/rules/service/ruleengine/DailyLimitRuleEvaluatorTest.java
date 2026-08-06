@@ -8,6 +8,7 @@ import com.hsbc.tms.rules.entity.MonitoringRule;
 import com.hsbc.tms.rules.model.RuleType;
 import com.hsbc.tms.rules.repository.RuleTransactionMetricsRepository;
 import com.hsbc.tms.transaction.model.Transaction;
+import com.hsbc.tms.transaction.model.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -52,7 +53,7 @@ class DailyLimitRuleEvaluatorTest {
         rule.setAmountThreshold(new BigDecimal("1000.00"));
         Transaction tx = buildTransaction();
 
-        when(metricsRepository.sumAmountByAccountAndTransactionTimeRange(any(), any(), any()))
+        when(metricsRepository.sumAmountByAccountAndTransactionTimeRangeAndStatus(any(), any(), any(), any(TransactionStatus.class)))
                 .thenReturn(new BigDecimal("1200.00"));
 
         RuleEvaluator.RuleEvaluationResult result = evaluator.evaluate(tx, rule);
@@ -67,7 +68,7 @@ class DailyLimitRuleEvaluatorTest {
         rule.setAmountThreshold(new BigDecimal("1000.00"));
         Transaction tx = buildTransaction();
 
-        when(metricsRepository.sumAmountByAccountAndTransactionTimeRange(any(), any(), any()))
+        when(metricsRepository.sumAmountByAccountAndTransactionTimeRangeAndStatus(any(), any(), any(), any(TransactionStatus.class)))
                 .thenReturn(new BigDecimal("1000.00"));
 
         RuleEvaluator.RuleEvaluationResult result = evaluator.evaluate(tx, rule);

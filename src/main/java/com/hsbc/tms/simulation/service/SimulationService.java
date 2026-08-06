@@ -41,12 +41,15 @@ public class SimulationService {
         String burstPayee = "PAY-NEW-" + (100 + random.nextInt(900));
 //        int burstCount = Math.max(1, count / 4);
 
-        for (int i = 0; i < count / 2; i++) {
+        int randomCount = count / 2;
+        int burstCount = count - randomCount;
+
+        for (int i = 0; i < randomCount; i++) {
             CreateTransactionRequest request = buildRandomTransaction(i);
             ids.add(transactionService.createTransaction(request).getId());
         }
 
-        for (int i = 0; i < count / 2; i++) {
+        for (int i = 0; i < burstCount; i++) {
             CreateTransactionRequest request = buildBurstTransaction(i, burstAccount, burstPayee);
             ids.add(transactionService.createTransaction(request).getId());
         }
