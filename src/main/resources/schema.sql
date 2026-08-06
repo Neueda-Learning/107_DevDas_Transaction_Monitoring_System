@@ -103,3 +103,16 @@ CREATE TABLE IF NOT EXISTS alert_history (
     INDEX idx_alert_history_created_at (created_at)
 );
 
+CREATE TABLE IF NOT EXISTS rule_feature_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    description VARCHAR(4000) NOT NULL,
+    requested_by VARCHAR(100) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'REQUESTED',
+    admin_note VARCHAR(1000),
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
+    INDEX idx_rule_feature_requests_status (status),
+    INDEX idx_rule_feature_requests_requested_by (requested_by)
+);
+
