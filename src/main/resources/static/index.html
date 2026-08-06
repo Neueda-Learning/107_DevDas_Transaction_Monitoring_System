@@ -212,6 +212,19 @@
     label.field > .lbl .req { color: var(--red); }
     .hint { font-size: 12px; color: var(--text-soft); margin-top: 5px; }
 
+    /* Inline field validation */
+    .input.err-field, .select.err-field, textarea.input.err-field {
+      border-color: var(--red) !important;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 14%, transparent) !important;
+    }
+    .field-err {
+      font-size: 11.5px; color: var(--red); margin-top: 5px;
+      line-height: 1.4; display: flex; align-items: flex-start; gap: 4px;
+    }
+    .field-err::before {
+      content: "⚠"; flex-shrink: 0; font-size: 11px; margin-top: 1px;
+    }
+
     .search {
       position: relative; flex: 1; max-width: 320px; min-width: 150px;
     }
@@ -887,6 +900,101 @@
     function toastError(e) { toast('err', e.message || 'Something went wrong', (e.details && e.details.length) ? e.details.join(' · ') : ''); }
 
     // ============================================================
+    // Domain-level field validation rules
+    // ============================================================
+    const DOMAIN_VALIDATORS = {
+      accountId:                  { label: 'Account ID',             test: v => /^ACC-\d{4}$/.test(v),            hint: "Must start with 'ACC-' followed by exactly 4 digits — e.g. ACC-1001" },
+      payeeId:                    { label: 'Payee ID',               test: v => /^PAY-\d{3}$/.test(v),            hint: "Must start with 'PAY-' followed by exactly 3 digits — e.g. PAY-220" },
+      currency:                   { label: 'Currency',               test: v => /^[A-Za-z]{3}$/.test(v),          hint: "Must be a 3-letter ISO code — e.g. USD, EUR, GBP" },
+      amount:                     { label: 'Amount',                 test: v => isFinite(+v) && +v > 0,           hint: "Must be a positive number greater than 0" },
+      amountThreshold:            { label: 'Threshold amount',       test: v => isFinite(+v) && +v > 0,           hint: "Must be a positive number greater than 0" },
+      transactionCountThreshold:  { label: 'Max transactions',       test: v => Number.isInteger(+v) && +v >= 1,  hint: "Must be a whole number of at least 1" },
+      timeWindowMinutes:          { label: 'Time window (minutes)',  test: v => Number.isInteger(+v) && +v >= 1,  hint: "Must be at least 1 minute" },
+      minAmount:                  { label: 'Min amount',             test: v => isFinite(+v) && +v >= 0,          hint: "Must be a non-negative number" },
+      maxAmount:                  { label: 'Max amount',             test: v => isFinite(+v) && +v >= 0,          hint: "Must be a non-negative number" },
+    };
+
+    /* --- Inline error helpers --- */
+    function showFieldError(input, msg) {
+      input.classList.add('err-field');
+      // reuse or create the error element immediately after the input
+      let e = input.nextElementSibling;
+      if (!e || !e.classList.contains('field-err')) {
+        e = document.createElement('div');
+        e.className = 'field-err';
+        input.insertAdjacentElement('afterend', e);
+      }
+      e.textContent = msg;
+    }
+    function clearFieldError(input) {
+      input.classList.remove('err-field');
+      const e = input.nextElementSibling;
+      if (e && e.classList.contains('field-err')) e.remove();
+    }
+    function getFieldLabel(input) {
+      const parent = input.closest('.field') || input.closest('.fg') || input.closest('label');
+      const lbl = parent ? parent.querySelector('.lbl') : null;
+      if (lbl) return lbl.textContent.replace(/[*]/g, '').replace(/\(optional\)/ig, '').trim();
+      return input.placeholder || input.name || 'This field';
+    }
+    // Validate a single input — shows inline error or clears it; returns true/false
+    function validateInput(input) {
+      if (input.type === 'checkbox' || input.type === 'radio') return true;
+      const val = input.value.trim();
+      const label = getFieldLabel(input);
+      // 1. Required
+      if (input.required && !val) {
+        showFieldError(input, `${label} is required.`);
+        return false;
+      }
+      // 2. HTML5 type/range/length constraints
+      if (val && !input.checkValidity()) {
+        let msg = `Enter a valid value for ${label}.`;
+        if (input.validity.rangeUnderflow) msg = `${label} must be at least ${input.min}.`;
+        else if (input.validity.rangeOverflow) msg = `${label} must be at most ${input.max}.`;
+        else if (input.validity.tooShort)      msg = `${label} requires at least ${input.minLength} characters.`;
+        else if (input.validity.typeMismatch)  msg = `Enter a valid ${label.toLowerCase()}.`;
+        else if (input.validity.patternMismatch) msg = input.title || msg;
+        showFieldError(input, msg);
+        return false;
+      }
+      // 3. Domain rules
+      const rule = DOMAIN_VALIDATORS[input.name];
+      if (rule && val && !rule.test(val)) {
+        showFieldError(input, rule.hint);
+        return false;
+      }
+      clearFieldError(input);
+      return true;
+    }
+    // Validate a standalone filter input by domain key (optional fields — only check if non-empty)
+    function validateFilterField(input, domainKey) {
+      const val = input.value.trim();
+      if (!val) { clearFieldError(input); return true; }
+      const rule = DOMAIN_VALIDATORS[domainKey];
+      if (rule && !rule.test(val)) { showFieldError(input, rule.hint); return false; }
+      clearFieldError(input); return true;
+    }
+    // Validate all inputs in a form; returns true only if every field passes
+    function validateAll(form) {
+      let ok = true, first = null;
+      form.querySelectorAll('input, select, textarea').forEach(inp => {
+        if (!validateInput(inp)) { ok = false; if (!first) first = inp; }
+      });
+      if (first) first.focus();
+      return ok;
+    }
+    // Wire real-time inline validation to a form via event delegation (handles dynamic content)
+    function wireFormValidation(form) {
+      form.addEventListener('input',  e => { if (e.target.matches('input, select, textarea')) validateInput(e.target); });
+      form.addEventListener('change', e => { if (e.target.matches('input, select, textarea')) validateInput(e.target); });
+      form.addEventListener('blur', e => {
+        const t = e.target;
+        if (t.matches('input, select, textarea') && (t.value.trim() || t.required)) validateInput(t);
+      }, true);
+    }
+
+    // ============================================================
     // Modal
     // ============================================================
     let modalEl = null;
@@ -1209,8 +1317,8 @@
           </div>
           <div class="card-body">
             <div class="filters">
-              <div class="fg"><span class="lbl">Account ID</span><input class="input" id="fAccount" placeholder="e.g. ACC-1001" value="${esc(txnState.filters.accountId || '')}"></div>
-              <div class="fg"><span class="lbl">Payee ID</span><input class="input" id="fPayee" placeholder="e.g. PAY-22" value="${esc(txnState.filters.payeeId || '')}"></div>
+              <div class="fg"><span class="lbl">Account ID</span><input class="input" id="fAccount" placeholder="e.g. ACC-1001 (ACC-4 digits)" value="${esc(txnState.filters.accountId || '')}"></div>
+              <div class="fg"><span class="lbl">Payee ID</span><input class="input" id="fPayee" placeholder="e.g. PAY-220 (PAY-3 digits)" value="${esc(txnState.filters.payeeId || '')}"></div>
               <div class="fg"><span class="lbl">Status</span><select class="select" id="fStatus"><option value="">Any</option>${optionList(['COMPLETED','PENDING','FAILED','PENDING_APPROVAL','REJECTED','ROLLBACK_REQUESTED','ROLLBACK_REJECTED','REFUNDED'], txnState.filters.status)}</select></div>
               <div class="fg"><span class="lbl">Type</span><select class="select" id="fType"><option value="">Any</option>${optionList(['DEBIT','CREDIT'], txnState.filters.type)}</select></div>
               <div class="fg"><span class="lbl">Min amount</span><input class="input num" id="fMin" type="number" step="0.01" min="0" placeholder="0.00" value="${esc(txnState.filters.minAmount || '')}" style="width:120px"></div>
@@ -1229,13 +1337,24 @@
 
       $('#newTxnBtn', view).onclick = openCreateTxn;
       const apply = () => {
+        const fAccount = $('#fAccount', view);
+        const fPayee   = $('#fPayee',   view);
+        const fMin     = $('#fMin',     view);
+        const fMax     = $('#fMax',     view);
+        const ok = [
+          validateFilterField(fAccount, 'accountId'),
+          validateFilterField(fPayee,   'payeeId'),
+          validateFilterField(fMin,     'minAmount'),
+          validateFilterField(fMax,     'maxAmount'),
+        ].every(Boolean);
+        if (!ok) return;
         txnState.filters = {
-          accountId: $('#fAccount', view).value.trim(),
-          payeeId: $('#fPayee', view).value.trim(),
-          status: $('#fStatus', view).value,
-          type: $('#fType', view).value,
-          minAmount: $('#fMin', view).value.trim(),
-          maxAmount: $('#fMax', view).value.trim(),
+          accountId: fAccount.value.trim(),
+          payeeId:   fPayee.value.trim(),
+          status:    $('#fStatus', view).value,
+          type:      $('#fType',   view).value,
+          minAmount: fMin.value.trim(),
+          maxAmount: fMax.value.trim(),
         };
         txnState.page = 0;
         loadTxns(view);
@@ -1244,6 +1363,10 @@
       view.querySelectorAll('#fAccount,#fPayee,#fMin,#fMax').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') apply(); }));
       view.querySelectorAll('#fStatus,#fType').forEach(s => s.addEventListener('change', apply));
       $('#txnReset', view).onclick = () => { txnState.filters = {}; txnState.page = 0; viewTransactions(view); };
+      // Real-time inline validation for filter fields
+      const _fv = (id, key) => { const el = $(id, view); el.addEventListener('input', () => validateFilterField(el, key)); };
+      _fv('#fAccount', 'accountId'); _fv('#fPayee', 'payeeId');
+      _fv('#fMin', 'minAmount');     _fv('#fMax',   'maxAmount');
 
       loadTxns(view);
     }
@@ -1288,8 +1411,8 @@
     function txnFormFields(v = {}) {
       const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
       return el(`<form class="form-grid" id="txnForm">
-        <label class="field"><span class="lbl">Account ID <span class="req">*</span></span><input class="input" name="accountId" maxlength="50" required placeholder="ACC-1001" value="${esc(v.accountId || '')}"></label>
-        <label class="field"><span class="lbl">Payee ID <span class="req">*</span></span><input class="input" name="payeeId" maxlength="50" required placeholder="PAY-2200" value="${esc(v.payeeId || '')}"></label>
+        <label class="field"><span class="lbl">Account ID <span class="req">*</span></span><input class="input" name="accountId" maxlength="8" required placeholder="ACC-1001" value="${esc(v.accountId || '')}"><div class="hint">Format: ACC- followed by exactly 4 digits</div></label>
+        <label class="field"><span class="lbl">Payee ID <span class="req">*</span></span><input class="input" name="payeeId" maxlength="7" required placeholder="PAY-220" value="${esc(v.payeeId || '')}"><div class="hint">Format: PAY- followed by exactly 3 digits</div></label>
         <label class="field"><span class="lbl">Amount <span class="req">*</span></span><input class="input num" name="amount" type="number" step="0.01" min="0.01" required placeholder="0.00" value="${esc(v.amount || '')}"></label>
         <label class="field"><span class="lbl">Currency <span class="req">*</span></span><input class="input" name="currency" required maxlength="3" placeholder="USD" style="text-transform:uppercase" value="${esc(v.currency || 'USD')}"><div class="hint">3-letter ISO code</div></label>
         <label class="field"><span class="lbl">Type <span class="req">*</span></span><select class="select" name="type">${optionList(['DEBIT','CREDIT'], v.type || 'DEBIT')}</select></label>
@@ -1300,6 +1423,7 @@
     }
     function openCreateTxn() {
       const form = txnFormFields();
+      wireFormValidation(form);
       let submitBtn;
       const footer = footerButtons([
         { label: 'Cancel', class: 'btn-ghost', onClick: closeModal },
@@ -1308,7 +1432,7 @@
       openModal({ title: 'Record transaction', sub: 'Submit a transaction into the monitoring system.', body: form, footer });
       form.addEventListener('submit', (e) => { e.preventDefault(); submit(); });
       async function submit() {
-        if (!form.reportValidity()) return;
+        if (!validateAll(form)) return;
         const fd = new FormData(form);
         const payload = {
           accountId: fd.get('accountId').trim(),
@@ -1440,9 +1564,10 @@
         { label: 'Request rollback', class: 'btn-primary', ref: b => submitBtn = b, onClick: submit },
       ]);
       openModal({ title: 'Request rollback', sub: 'Recorded as ' + CFG.operator, body: form, footer });
+      wireFormValidation(form);
       form.addEventListener('submit', e => { e.preventDefault(); submit(); });
       async function submit() {
-        if (!form.reportValidity()) return;
+        if (!validateAll(form)) return;
         const data = Object.fromEntries(new FormData(form).entries());
         busy(submitBtn, true, 'Saving…');
         try {
@@ -1743,9 +1868,10 @@
         { label: titleCase(target), class: target === 'DISMISSED' ? 'btn-danger' : 'btn-primary', ref: b => submitBtn = b, onClick: submit },
       ]);
       openModal({ title: titleCase(target) + ' alert', sub: 'Recorded as ' + CFG.operator, body: form, footer });
+      wireFormValidation(form);
       form.addEventListener('submit', e => { e.preventDefault(); submit(); });
       async function submit() {
-        if (!form.reportValidity()) return;
+        if (!validateAll(form)) return;
         const note = new FormData(form).get('note').trim();
         busy(submitBtn, true, 'Saving…');
         try {
@@ -1905,9 +2031,10 @@
         { label: isEdit ? 'Save changes' : 'Create rule', class: 'btn-primary', ref: b => submitBtn = b, onClick: submit },
       ]);
       openModal({ title: isEdit ? 'Edit rule' : 'New monitoring rule', sub: isEdit ? existing.name : 'Define how transactions are screened.', body: form, footer });
+      wireFormValidation(form);
       form.addEventListener('submit', e => { e.preventDefault(); submit(); });
       async function submit() {
-        if (!form.reportValidity()) return;
+        if (!validateAll(form)) return;
         const fd = new FormData(form);
         const type = fd.get('type');
         const payload = {
@@ -2067,9 +2194,10 @@
         { label: 'Submit Request', class: 'btn-primary', ref: b => submitBtn = b, onClick: submit },
       ]);
       openModal({ title: 'Request a New Rule', sub: 'Describe the rule you want the development team to build.', body: form, footer });
+      wireFormValidation(form);
       form.addEventListener('submit', e => { e.preventDefault(); submit(); });
       async function submit() {
-        if (!form.reportValidity()) return;
+        if (!validateAll(form)) return;
         const fd = new FormData(form);
         const payload = {
           title: fd.get('title').trim(),
