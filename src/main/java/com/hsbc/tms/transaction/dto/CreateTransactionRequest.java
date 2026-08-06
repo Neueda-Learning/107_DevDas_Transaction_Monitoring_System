@@ -13,10 +13,12 @@ import java.time.Instant;
 public class CreateTransactionRequest {
 
     @NotBlank
+    @Pattern(regexp = "^ACC-\\d{4}$", message = "Account ID must start with 'ACC-' followed by exactly 4 digits (e.g. ACC-1001)")
     @Size(max = 50)
     private String accountId;
 
     @NotBlank
+    @Pattern(regexp = "^PAY-\\d{3}$", message = "Payee ID must start with 'PAY-' followed by exactly 3 digits (e.g. PAY-220)")
     @Size(max = 50)
     private String payeeId;
 
