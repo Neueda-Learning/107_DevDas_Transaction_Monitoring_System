@@ -174,6 +174,24 @@ public class JdbcAlertRepository implements AlertRepository {
         return alerts;
     }
 
+    @Override
+    public List<Alert> findByTriggeringTransactionId(UUID transactionId) {
+        String sql = """
+                SELECT a.id, a.rule_name, a.rule_type, a.severity, a.status, a.message, a.created_at, a.updated_at
+                FROM alerts a
+                JOIN alert_transactions atx ON atx.alert_id = a.id
+                WHERE atx.transaction_id = :transactionId
+                ORDER BY a.created_at DESC, a.id DESC
+                """;
+
+        List<Alert> alerts = jdbcClient.sql(sql)
+                .param("transactionId", transactionId.toString())
+                .query(ALERT_ROW_MAPPER)
+                .list();
+        hydrateTriggeringTransactionIds(alerts);
+        return alerts;
+    }
+
     private Map<String, Object> toParams(Alert alert) {
         Map<String, Object> params = new HashMap<>();
         params.put("id", alert.getId());
