@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 import com.hsbc.tms.alerts.repository.AlertRepository;
 import com.hsbc.tms.alerts.service.AlertService;
@@ -23,11 +24,14 @@ import com.hsbc.tms.transaction.model.Transaction;
 import com.hsbc.tms.transaction.model.TransactionStatus;
 import com.hsbc.tms.transaction.model.TransactionType;
 import com.hsbc.tms.transaction.repository.TransactionRepository;
+import org.springframework.context.ApplicationEventPublisher;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,11 +58,14 @@ class TransactionServiceTest {
     @Mock
     private AlertRepository alertRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private TransactionServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new TransactionServiceImpl(transactionRepository, ruleEngineService, alertService, alertRepository);
+        service = new TransactionServiceImpl(transactionRepository, ruleEngineService, alertService, alertRepository, eventPublisher);
     }
 
     @Test
@@ -74,6 +81,11 @@ class TransactionServiceTest {
         assertThat(response.getAccountId()).isEqualTo("ACC-1");
         assertThat(response.getStatus()).isEqualTo(TransactionStatus.PENDING);
         verify(transactionRepository, never()).update(any(Transaction.class));
+
+        ArgumentCaptor<TransactionUpdatedEvent> eventCaptor = ArgumentCaptor.forClass(TransactionUpdatedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getTransactionId()).isEqualTo(response.getId());
+        assertThat(eventCaptor.getValue().getStatus()).isEqualTo(TransactionStatus.PENDING.name());
     }
 
     @Test
@@ -89,6 +101,11 @@ class TransactionServiceTest {
         assertThat(response.getStatus()).isEqualTo(TransactionStatus.PENDING_APPROVAL);
         assertThat(response.getReviewNote()).isEqualTo("Rule violation detected. Operator approval required.");
         verify(transactionRepository).update(any(Transaction.class));
+
+        ArgumentCaptor<TransactionUpdatedEvent> eventCaptor = ArgumentCaptor.forClass(TransactionUpdatedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getTransactionId()).isEqualTo(response.getId());
+        assertThat(eventCaptor.getValue().getStatus()).isEqualTo(TransactionStatus.PENDING_APPROVAL.name());
     }
 
     @Test
@@ -178,6 +195,7 @@ class TransactionServiceTest {
         assertThat(response.getReviewedBy()).isEqualTo("operator-1");
         assertThat(response.getReviewNote()).isEqualTo("Approved by operator");
         verify(alertService).resolveAlertsForTransactionDecision(id, "operator-1", true, "   ");
+        verify(eventPublisher).publishEvent(any(TransactionUpdatedEvent.class));
     }
 
     @Test
@@ -206,6 +224,7 @@ class TransactionServiceTest {
         assertThat(response.getStatus()).isEqualTo(TransactionStatus.REJECTED);
         assertThat(response.getReviewNote()).isEqualTo("manual reject");
         verify(alertService).resolveAlertsForTransactionDecision(id, "operator-2", false, "manual reject");
+        verify(eventPublisher).publishEvent(any(TransactionUpdatedEvent.class));
     }
 
     @Test
@@ -225,6 +244,7 @@ class TransactionServiceTest {
         assertThat(response.getRollbackReasonDetail()).isEqualTo("wrong payee");
         assertThat(response.getRollbackRequestedBy()).isEqualTo("user-1");
         assertThat(response.getRollbackSupportingReference()).isNull();
+        verify(eventPublisher).publishEvent(any(TransactionUpdatedEvent.class));
     }
 
     @Test
@@ -263,6 +283,7 @@ class TransactionServiceTest {
         assertThat(refund.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
         assertThat(refund.getRefundedForTransactionId()).isEqualTo(id);
         assertThat(refund.getDescription()).contains(id.toString());
+        verify(eventPublisher, times(2)).publishEvent(any(TransactionUpdatedEvent.class));
     }
 
     @Test
@@ -279,6 +300,7 @@ class TransactionServiceTest {
         assertThat(response.getStatus()).isEqualTo(TransactionStatus.ROLLBACK_REJECTED);
         assertThat(response.getRollbackReviewedBy()).isEqualTo("ops-9");
         assertThat(response.getRollbackReviewNote()).isEqualTo("Rollback rejected");
+        verify(eventPublisher).publishEvent(any(TransactionUpdatedEvent.class));
     }
 
     @Test
@@ -320,4 +342,3 @@ class TransactionServiceTest {
         return tx;
     }
 }
-

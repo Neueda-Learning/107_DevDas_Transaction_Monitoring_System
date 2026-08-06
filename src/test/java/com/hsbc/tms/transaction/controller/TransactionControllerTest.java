@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionControllerTest {
@@ -170,6 +171,17 @@ class TransactionControllerTest {
         verify(transactionService).rejectRollback(id, request);
     }
 
+    @Test
+    void subscribeToEvents_delegatesToEventService() {
+        SseEmitter emitter = new SseEmitter();
+        when(transactionEventService.subscribe()).thenReturn(emitter);
+
+        SseEmitter result = controller.subscribeToEvents();
+
+        assertThat(result).isSameAs(emitter);
+        verify(transactionEventService).subscribe();
+    }
+
     private TransactionResponse sampleResponse() {
         TransactionResponse response = new TransactionResponse();
         response.setId(UUID.randomUUID());
@@ -183,4 +195,3 @@ class TransactionControllerTest {
         return response;
     }
 }
-
