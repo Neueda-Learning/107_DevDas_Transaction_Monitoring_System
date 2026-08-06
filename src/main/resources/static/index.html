@@ -463,6 +463,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           <span>Dashboard</span>
         </a>
+        <a class="nav-item" data-route="generate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>
+          <span>Generate</span>
+        </a>
         <a class="nav-item" data-route="alerts">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
           <span>Alerts</span>
@@ -475,10 +479,6 @@
         <a class="nav-item" data-route="rules">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg>
           <span>Rules</span>
-        </a>
-        <a class="nav-item" data-route="generate">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>
-          <span>Generate</span>
         </a>
       </nav>
 
@@ -1208,7 +1208,6 @@
     // ============================================================
     // VIEW: Alerts
     // ============================================================
-    const RESOLVED_ALERT_STATES = ['CLOSED', 'DISMISSED'];
     const alertState = { status: '', severity: '', activeOnly: false, q: '' };
     async function viewAlerts(view) {
       view.innerHTML = `
@@ -1217,7 +1216,7 @@
             <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="input" id="aSearch" placeholder="Search by rule name or message" value="${esc(alertState.q)}"></div>
             <div class="fg"><span class="lbl">Status</span><select class="select" id="aStatus"><option value="">Any</option>${optionList(['OPEN','ACKNOWLEDGED','INVESTIGATING','CLOSED','DISMISSED'], alertState.status)}</select></div>
             <div class="fg"><span class="lbl">Severity</span><select class="select" id="aSeverity"><option value="">Any</option>${optionList(['HIGH','MEDIUM','LOW'], alertState.severity)}</select></div>
-            <label class="field" id="aActiveWrap" style="display:flex;align-items:center;gap:8px;height:34px;cursor:pointer"><input type="checkbox" id="aActive" ${alertState.activeOnly ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)"><span class="lbl" style="margin:0">Active only</span></label>
+            <label class="field" style="display:flex;align-items:center;gap:8px;height:34px;cursor:pointer"><input type="checkbox" id="aActive" ${alertState.activeOnly ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)"><span class="lbl" style="margin:0">Active only</span></label>
             <div class="spacer" style="flex:1"></div>
             <button class="btn btn-sm btn-ghost" id="alertRefresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh</button>
           </div>
@@ -1228,27 +1227,15 @@
             <tbody id="alertBody">${skeletonRows(6, 6)}</tbody>
           </table></div>
         </div>`;
-      const statusSelect = $('#aStatus', view);
-      const severitySelect = $('#aSeverity', view);
-      const activeWrap = $('#aActiveWrap', view);
-      const activeCheckbox = $('#aActive', view);
-      const syncActiveCheckboxForStatus = () => {
-        const resolved = RESOLVED_ALERT_STATES.includes(statusSelect.value);
-        activeWrap.style.display = resolved ? 'none' : 'flex';
-        if (resolved) activeCheckbox.checked = false;
-      };
-      syncActiveCheckboxForStatus();
-
       const reload = () => {
-        syncActiveCheckboxForStatus();
-        alertState.status = statusSelect.value;
-        alertState.severity = severitySelect.value;
-        alertState.activeOnly = activeCheckbox.checked;
+        alertState.status = $('#aStatus', view).value;
+        alertState.severity = $('#aSeverity', view).value;
+        alertState.activeOnly = $('#aActive', view).checked;
         loadAlerts(view);
       };
-      statusSelect.onchange = reload;
-      severitySelect.onchange = reload;
-      activeCheckbox.onchange = reload;
+      $('#aStatus', view).onchange = reload;
+      $('#aSeverity', view).onchange = reload;
+      $('#aActive', view).onchange = reload;
       $('#alertRefresh', view).onclick = () => loadAlerts(view);
       $('#aSearch', view).addEventListener('input', debounce(() => { alertState.q = $('#aSearch', view).value.trim().toLowerCase(); loadAlerts(view); }, 250));
       loadAlerts(view);
@@ -1257,8 +1244,7 @@
       const body = $('#alertBody', view);
       body.innerHTML = skeletonRows(6, 6);
       try {
-        const activeOnly = RESOLVED_ALERT_STATES.includes(alertState.status) ? false : alertState.activeOnly;
-        let list = await api('/alerts' + qs({ status: alertState.status, severity: alertState.severity, activeOnly: activeOnly || undefined }));
+        let list = await api('/alerts' + qs({ status: alertState.status, severity: alertState.severity, activeOnly: alertState.activeOnly || undefined }));
         if (!Array.isArray(list)) list = [];
         if (alertState.q) list = list.filter(a => (a.ruleName || '').toLowerCase().includes(alertState.q) || (a.message || '').toLowerCase().includes(alertState.q));
         list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
