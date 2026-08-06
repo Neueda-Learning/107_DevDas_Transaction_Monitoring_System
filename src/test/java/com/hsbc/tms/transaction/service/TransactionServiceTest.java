@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.hsbc.tms.alerts.repository.AlertRepository;
 import com.hsbc.tms.alerts.service.AlertService;
 import com.hsbc.tms.common.dto.PagedResponse;
 import com.hsbc.tms.common.exception.BadRequestException;
@@ -50,11 +51,14 @@ class TransactionServiceTest {
     @Mock
     private AlertService alertService;
 
+    @Mock
+    private AlertRepository alertRepository;
+
     private TransactionServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new TransactionServiceImpl(transactionRepository, ruleEngineService, alertService);
+        service = new TransactionServiceImpl(transactionRepository, ruleEngineService, alertService, alertRepository);
     }
 
     @Test
