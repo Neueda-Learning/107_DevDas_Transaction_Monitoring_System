@@ -37,16 +37,21 @@ public class SimulationService {
     public List<UUID> generate(int count) {
         List<UUID> ids = new ArrayList<>();
 
-        String burstAccount = randomChoice(ACCOUNTS);
+        String burstAccount = "ACC-1001";
         String burstPayee = "PAY-NEW-" + (100 + random.nextInt(900));
-        int burstCount = Math.max(1, count / 4);
+//        int burstCount = Math.max(1, count / 4);
 
-        for (int i = 0; i < count; i++) {
-            CreateTransactionRequest request = (i < burstCount)
-                    ? buildBurstTransaction(i, burstAccount, burstPayee)
-                    : buildRandomTransaction(i);
+        for (int i = 0; i < count / 2; i++) {
+            CreateTransactionRequest request = buildRandomTransaction(i);
             ids.add(transactionService.createTransaction(request).getId());
         }
+
+        for (int i = 0; i < count / 2; i++) {
+            CreateTransactionRequest request = buildBurstTransaction(i, burstAccount, burstPayee);
+            ids.add(transactionService.createTransaction(request).getId());
+        }
+
+
         return ids;
     }
 

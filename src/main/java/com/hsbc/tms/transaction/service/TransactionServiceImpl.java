@@ -65,6 +65,8 @@ public class TransactionServiceImpl implements TransactionService {
             saved.setReviewNote("Rule violation detected. Operator approval required.");
             saved.setUpdatedAt(Instant.now());
             saved = transactionRepository.update(saved);
+            // Note: alertService.createAlertForRuleTrigger is already called by ruleEngineService.evaluate()
+            // but confirming transaction is persisted with PENDING_APPROVAL status before alert reference is resolved
         }
 
         return toResponse(saved);
